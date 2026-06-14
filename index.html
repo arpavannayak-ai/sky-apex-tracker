@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>🐺 SKY APEX V12</title>
+    <title>🐺 SKY APEX V13</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
@@ -40,8 +40,8 @@
                 <p class="text-[10px] text-neutral-500 uppercase">Off-Program Manual Entry</p>
                 <input type="text" id="manual-name" placeholder="Exercise Name" class="w-full p-2 rounded text-xs">
                 <div class="flex gap-2">
-                    <input type="number" id="manual-weight" placeholder="Weight" class="flex-1 p-2 rounded text-xs text-center font-mono">
-                    <input type="text" id="manual-reps" placeholder="Reps/Time" class="flex-[1.5] p-2 rounded text-xs text-center font-mono">
+                    <input type="text" id="manual-weight" placeholder="Wgt" class="flex-1 p-2 rounded text-xs text-center font-mono">
+                    <input type="text" id="manual-reps" placeholder="Reps" class="flex-1 p-2 rounded text-xs text-center font-mono">
                     <input type="number" step="0.5" id="manual-rpe" placeholder="RPE" class="flex-1 p-2 rounded text-xs text-center font-mono">
                 </div>
                 <button onclick="saveManualExercise()" class="w-full bg-neutral-800 text-white font-bold py-2 rounded text-xs uppercase">Log Manual</button>
@@ -63,10 +63,9 @@
         </section>
 
         <section id="tab-summary" class="hidden space-y-4">
-            <h2 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Weekly Matrix Dashboard</h2>
+            <h2 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Data Aggregation</h2>
             
-            <p class="text-[10px] text-neutral-500 mb-2">Rolling 7-Day Performance Averages</p>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 gap-3 mb-4">
                 <div class="bg-neutral-900 p-4 rounded border border-neutral-800 text-center flex flex-col justify-center">
                     <p class="text-[10px] text-neutral-500 uppercase">Workouts Logged</p>
                     <p id="sum-workouts" class="text-2xl font-black text-white">--</p>
@@ -77,87 +76,85 @@
                 </div>
             </div>
 
-            <div class="mt-8 border-t border-emerald-900 pt-4">
-                <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-xs font-bold text-emerald-500 tracking-widest uppercase">🐺 Daily AI Tactical Assessment</h3>
-                    <button onclick="clearApiKey()" class="text-[9px] text-neutral-600 hover:text-red-500">RESET KEY</button>
+            <div class="p-3 bg-neutral-950 border border-neutral-800 rounded space-y-3">
+                <div>
+                    <p class="text-[10px] text-neutral-500 uppercase mb-1">1. Export Today's Macros</p>
+                    <button onclick="copyDataForWolf()" class="w-full bg-neutral-800 hover:bg-neutral-700 text-emerald-400 text-[10px] font-bold py-2 rounded uppercase border border-emerald-500/50">Copy Logs to Clipboard</button>
                 </div>
                 
-                <div id="api-key-container" class="mb-4 bg-black p-3 rounded border border-neutral-800">
-                    <p class="text-[10px] text-neutral-400 mb-2">System requires local API key to initiate neural link.</p>
-                    <input type="password" id="api-key-input" placeholder="Paste Gemini API Key..." class="w-full p-2 rounded text-xs mb-2">
-                    <button onclick="saveApiKey()" class="w-full bg-neutral-800 text-white font-bold py-2 rounded text-xs uppercase">Lock Key Locally</button>
+                <div class="border-t border-neutral-800 pt-3">
+                    <p class="text-[10px] text-neutral-500 uppercase mb-1">2. Import Wolf's Assessment</p>
+                    <textarea id="ai-paste" rows="4" placeholder="Paste the tactical feedback from chat here..." class="w-full p-2 rounded text-xs mb-2 resize-none font-mono"></textarea>
+                    <button onclick="saveAIAssessment()" class="w-full bg-emerald-900/50 hover:bg-emerald-900 text-emerald-400 font-bold py-2 rounded text-[10px] uppercase border border-emerald-700">Lock Assessment to Database</button>
                 </div>
-
-                <div class="p-3 bg-neutral-950 border border-neutral-800 rounded mb-3 text-center">
-                    <p class="text-[10px] text-neutral-500 uppercase mb-1">Today's Intake Detected</p>
-                    <p id="today-macro-summary" class="text-xs font-mono text-emerald-400 font-bold">Awaiting Data...</p>
-                </div>
-
-                <button id="btn-audit" onclick="triggerWolfAudit()" class="w-full bg-emerald-900/50 hover:bg-emerald-900 text-emerald-400 font-bold py-3 rounded text-xs border border-emerald-700 uppercase tracking-widest hidden transition">Assess Today's Performance</button>
-                
-                <div id="ai-response" class="mt-4 p-4 bg-black border border-neutral-800 rounded text-xs text-neutral-300 font-mono hidden whitespace-pre-wrap leading-relaxed"></div>
             </div>
         </section>
     </main>
 
     <script>
-        // PASTE YOUR V12 APPS SCRIPT URL HERE
+        // PASTE YOUR V13 APPS SCRIPT URL HERE
         const SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbzG-bHDac99hndYrBkbDdfBH5mnLhk-G3RkY7zJjcwbEKbN0_VJvwLJXiviT4R59oCfPA/exec";
 
         let cloudData = { program: [], history: [], nutrition: [] };
         let activeDate = new Date().toLocaleDateString('en-US');
 
-        // ---- UI & Sync Functions ----
+        // ---- Nav & Sync ----
         function buildDateNav() {
-            const nav = document.getElementById('date-nav');
-            nav.innerHTML = '';
-            const today = new Date();
+            const nav = document.getElementById('date-nav'); nav.innerHTML = ''; const today = new Date();
             for(let i = -2; i <= 4; i++) {
                 let t = new Date(); t.setDate(today.getDate() + i);
-                let dStr = t.toLocaleDateString('en-US'); 
-                let dName = t.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-                let dNum = t.getDate();
+                let dStr = t.toLocaleDateString('en-US'); let dName = t.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(); let dNum = t.getDate();
                 let c = (i === 0) ? "day-btn active min-w-[60px] py-2 rounded bg-emerald-600 text-black border border-emerald-500 flex flex-col items-center justify-center" : "day-btn min-w-[60px] py-2 rounded bg-neutral-900 border border-neutral-800 text-neutral-400 flex flex-col items-center justify-center";
                 nav.innerHTML += `<button onclick="setDate('${dStr}', this)" class="${c}"><span class="text-[9px] font-bold">${dName}</span><span class="text-sm font-black">${dNum}</span></button>`;
             }
         }
-
         function setDate(dStr, btn) {
             activeDate = dStr;
             document.querySelectorAll('.day-btn').forEach(b => b.className = "day-btn min-w-[60px] py-2 rounded bg-neutral-900 border border-neutral-800 text-neutral-400 flex flex-col items-center justify-center");
             btn.className = "day-btn active min-w-[60px] py-2 rounded bg-emerald-600 text-black border border-emerald-500 flex flex-col items-center justify-center";
             renderWorkoutProgram();
         }
-
         function switchTab(tab) {
             ['exercise', 'nutrition', 'summary'].forEach(t => { document.getElementById('tab-' + t).classList.add('hidden'); document.getElementById('btn-' + t).classList.remove('active'); });
             document.getElementById('tab-' + tab).classList.remove('hidden'); document.getElementById('btn-' + tab).classList.add('active');
-            if(tab === 'summary') { computeSummary(); checkApiKey(); }
+            if(tab === 'summary') computeSummary();
         }
-
         async function fetchCloudData() {
             document.getElementById('sync-status').innerText = "DOWNLOADING...";
             try {
                 let res = await fetch(SHEETS_API_URL); cloudData = await res.json();
                 document.getElementById('sync-status').innerText = "SYNCED: " + new Date().toLocaleTimeString();
                 renderWorkoutProgram();
-                computeSummary();
             } catch(e) { document.getElementById('sync-status').innerText = "OFFLINE"; }
         }
 
+        // ---- Dynamic Workout UI ----
         function renderWorkoutProgram() {
             const container = document.getElementById('workout-container'); container.innerHTML = '';
             let todaysLifts = cloudData.program.filter(p => p.date === activeDate);
             
             if(todaysLifts.length === 0) return container.innerHTML = `<p class="text-xs text-neutral-500 text-center italic mt-4">Rest Day or Unprogrammed.</p>`;
 
-            todaysLifts.forEach((lift, index) => {
-                let pMatch = cloudData.history.find(h => h.name.toLowerCase() === lift.name.toLowerCase());
-                let pText = pMatch ? `LAST: ${pMatch.metrics}` : "NO HISTORY";
+            todaysLifts.forEach((lift, exIndex) => {
+                if(!lift.weight && !lift.sets) {
+                    container.innerHTML += `<div class="mt-6 mb-2 border-b border-emerald-500/30 pb-1"><span class="text-xs font-black text-emerald-500 uppercase tracking-widest">${lift.name}</span></div>`;
+                    return;
+                }
+                
+                let numSets = parseInt(lift.sets);
+                if(isNaN(numSets) || numSets < 1) numSets = 1;
+
+                let pastMatch = cloudData.history.find(h => h.name.toLowerCase() === lift.name.toLowerCase());
+                let pastText = pastMatch ? `LAST: ${pastMatch.metrics}` : "NO HISTORY";
+
+                // Build initial set rows
+                let rowsHTML = '';
+                for(let s = 0; s < numSets; s++) {
+                    rowsHTML += generateSetRow(exIndex, s, lift.name);
+                }
 
                 container.innerHTML += `
-                <div class="bg-neutral-900 p-3 rounded border border-neutral-800">
+                <div class="bg-neutral-900 p-3 rounded border border-neutral-800 mb-2">
                     <div class="flex justify-between items-start mb-1">
                         <span class="text-xs font-bold text-white uppercase">${lift.name}</span>
                         <div class="flex gap-1">
@@ -166,160 +163,127 @@
                         </div>
                     </div>
                     <div class="text-[10px] text-neutral-400 mb-3 flex flex-wrap gap-2 items-center">
-                        <span class="font-mono bg-black border border-neutral-800 px-1.5 py-0.5 rounded">${lift.sets} SETS</span>
                         <span class="font-mono bg-black border border-neutral-800 px-1.5 py-0.5 rounded">${lift.reps} REPS</span>
                         ${lift.instr ? `<span class="italic text-emerald-500/70">"${lift.instr}"</span>` : ''}
                     </div>
-                    <div class="flex items-center gap-1">
-                        <input type="text" id="log-weight-${index}" placeholder="Wgt" class="flex-1 p-1.5 rounded text-xs text-center font-mono bg-black text-white">
-                        <input type="text" id="log-reps-${index}" placeholder="Reps" class="flex-1 p-1.5 rounded text-xs text-center font-mono bg-black text-white">
-                        <input type="number" step="0.5" id="log-rpe-${index}" placeholder="RPE" class="flex-1 p-1.5 rounded text-xs text-center font-mono bg-black text-white">
-                        <button onclick="logProgrammedLift('${lift.name}', ${index})" class="bg-emerald-600 text-black text-[10px] font-bold px-3 py-1.5 rounded uppercase border border-emerald-500">Lock</button>
+                    
+                    <div id="ex-sets-${exIndex}" class="space-y-1">
+                        ${rowsHTML}
                     </div>
-                    <p class="text-[9px] text-neutral-500 mt-1 font-mono">${pText}</p>
+                    
+                    <div class="flex justify-between items-center mt-2">
+                        <p class="text-[9px] text-neutral-500 font-mono">${pastText}</p>
+                        <button onclick="addSetRow(${exIndex}, '${lift.name}')" class="text-[10px] font-bold text-emerald-500 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-900/50 hover:bg-emerald-900/50">+ ADD SET</button>
+                    </div>
                 </div>`;
             });
         }
 
-        async function transmit(payload) {
-            try { 
-                await fetch(SHEETS_API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); 
-                alert("🔱 Output locked."); 
-                fetchCloudData(); // Background refresh
-            } 
-            catch(e) { alert("Data recorded locally."); }
+        function generateSetRow(exIndex, setIndex, exName) {
+            return `
+            <div class="flex items-center gap-1" id="row-${exIndex}-${setIndex}">
+                <input type="text" id="w-${exIndex}-${setIndex}" placeholder="Wgt" class="flex-1 p-1.5 rounded text-xs text-center font-mono bg-black text-white">
+                <input type="text" id="r-${exIndex}-${setIndex}" placeholder="Reps" class="flex-1 p-1.5 rounded text-xs text-center font-mono bg-black text-white">
+                <input type="number" step="0.5" id="rpe-${exIndex}-${setIndex}" placeholder="RPE" class="flex-1 p-1.5 rounded text-xs text-center font-mono bg-black text-white">
+                <button id="btn-${exIndex}-${setIndex}" onclick="lockSet('${exName}', ${exIndex}, ${setIndex})" class="bg-emerald-600 text-black text-[10px] font-bold px-3 py-1.5 rounded uppercase border border-emerald-500 min-w-[50px]">Lock</button>
+            </div>`;
         }
 
-        function logProgrammedLift(name, index) {
-            const w = document.getElementById('log-weight-' + index).value;
-            const rep = document.getElementById('log-reps-' + index).value;
-            const rpe = document.getElementById('log-rpe-' + index).value;
-            if(!w || !rep) return alert("Weight and Reps required.");
+        function addSetRow(exIndex, exName) {
+            let container = document.getElementById(`ex-sets-${exIndex}`);
+            let newIndex = container.children.length;
             
-            let m = `${w} x ${rep}`;
+            let prevW = document.getElementById(`w-${exIndex}-${newIndex-1}`).value || '';
+            let prevR = document.getElementById(`r-${exIndex}-${newIndex-1}`).value || '';
+            let prevRPE = document.getElementById(`rpe-${exIndex}-${newIndex-1}`).value || '';
+
+            let div = document.createElement('div');
+            div.className = "flex items-center gap-1";
+            div.id = `row-${exIndex}-${newIndex}`;
+            div.innerHTML = `
+                <input type="text" id="w-${exIndex}-${newIndex}" value="${prevW}" class="flex-1 p-1.5 rounded text-xs text-center font-mono bg-black text-white">
+                <input type="text" id="r-${exIndex}-${newIndex}" value="${prevR}" class="flex-1 p-1.5 rounded text-xs text-center font-mono bg-black text-white">
+                <input type="number" step="0.5" id="rpe-${exIndex}-${newIndex}" value="${prevRPE}" class="flex-1 p-1.5 rounded text-xs text-center font-mono bg-black text-white">
+                <button id="btn-${exIndex}-${newIndex}" onclick="lockSet('${exName}', ${exIndex}, ${newIndex})" class="bg-emerald-600 text-black text-[10px] font-bold px-3 py-1.5 rounded uppercase border border-emerald-500 min-w-[50px]">Lock</button>
+            `;
+            container.appendChild(div);
+        }
+
+        async function transmit(payload) {
+            try { await fetch(SHEETS_API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } 
+            catch(e) { console.log("Recorded locally."); }
+        }
+
+        function lockSet(name, exIndex, setIndex) {
+            const w = document.getElementById(`w-${exIndex}-${setIndex}`).value;
+            const r = document.getElementById(`r-${exIndex}-${setIndex}`).value;
+            const rpe = document.getElementById(`rpe-${exIndex}-${setIndex}`).value;
+            if(!w || !r) return alert("Weight and Reps required.");
+            
+            let m = `${w} x ${r}`;
             if(rpe) m += ` @ RPE ${rpe}`;
 
-            transmit({ type: "exercise", timestamp: new Date().toLocaleString(), name: name, metrics: m, notes: "Programmed" });
-            document.getElementById('log-reps-' + index).value = 'LOCKED';
+            transmit({ type: "exercise", timestamp: new Date().toLocaleString(), name: name + ` (Set ${setIndex+1})`, metrics: m, notes: "Programmed" });
+            
+            let btn = document.getElementById(`btn-${exIndex}-${setIndex}`);
+            btn.innerText = '✔️';
+            btn.className = "bg-neutral-800 text-emerald-500 text-[10px] font-bold px-3 py-1.5 rounded uppercase border border-neutral-700 min-w-[50px]";
+            // Inputs are intentionally left populated
         }
 
         function saveManualExercise() {
-            const n = document.getElementById('manual-name').value; 
-            const w = document.getElementById('manual-weight').value;
-            const rep = document.getElementById('manual-reps').value;
-            const rpe = document.getElementById('manual-rpe').value;
-            if(!n || !w || !rep) return alert("Required data missing.");
-            
-            let m = `${w} x ${rep}`;
-            if(rpe) m += ` @ RPE ${rpe}`;
-
+            const n = document.getElementById('manual-name').value; const w = document.getElementById('manual-weight').value;
+            const r = document.getElementById('manual-reps').value; const rpe = document.getElementById('manual-rpe').value;
+            if(!n || !w || !r) return alert("Required data missing.");
+            let m = `${w} x ${r}`; if(rpe) m += ` @ RPE ${rpe}`;
             transmit({ type: "exercise", timestamp: new Date().toLocaleString(), name: n, metrics: m, notes: "Manual" });
+            alert("🔱 Logged.");
             ['manual-name','manual-weight','manual-reps','manual-rpe'].forEach(id => document.getElementById(id).value = '');
         }
 
+        // ---- Nutrition & Comms ----
         function saveNutrition() {
-            const desc = document.getElementById('n-desc').value;
-            if(!desc) return;
+            const desc = document.getElementById('n-desc').value; if(!desc) return;
             transmit({ type: "nutrition", timestamp: new Date().toLocaleString(), desc: desc, protein: parseInt(document.getElementById('n-p').value)||0, carbs: parseInt(document.getElementById('n-c').value)||0, fats: parseInt(document.getElementById('n-f').value)||0, fiber: parseInt(document.getElementById('n-fi').value)||0 });
             document.getElementById('n-desc').value = ''; ['n-p','n-c','n-f','n-fi'].forEach(id => document.getElementById(id).value = 0);
+            alert("Fuel Injected."); fetchCloudData();
         }
 
-        // --- Dashboard & AI Logic ---
         function computeSummary() {
-            // 1. Weekly Dashboard (Averages over last 7 logged days)
             document.getElementById('sum-workouts').innerText = cloudData.history.length || 0;
             if(cloudData.nutrition.length > 0) {
                 let pro = cloudData.nutrition.reduce((s, i) => s + (Number(i.pro) || 0), 0);
-                // For simplicity, dividing by 7 to show a trailing weekly average
                 document.getElementById('sum-protein').innerText = Math.round(pro / 7);
             }
+        }
 
-            // 2. Isolate Today's Macros for the UI Box
+        function copyDataForWolf() {
             let todayStr = new Date().toLocaleDateString('en-US');
-            let todaysMeals = cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === todayStr);
+            let tMeals = cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === todayStr);
             
-            if (todaysMeals.length > 0) {
-                let tPro = todaysMeals.reduce((s, i) => s + (Number(i.pro)||0), 0);
-                let tCarb = todaysMeals.reduce((s, i) => s + (Number(i.carb)||0), 0);
-                let tFat = todaysMeals.reduce((s, i) => s + (Number(i.fat)||0), 0);
-                document.getElementById('today-macro-summary').innerText = `${tPro}g PRO | ${tCarb}g CARB | ${tFat}g FAT`;
-            } else {
-                document.getElementById('today-macro-summary').innerText = "0g PRO | 0g CARB | 0g FAT";
-            }
-        }
-
-        function saveApiKey() {
-            const key = document.getElementById('api-key-input').value.trim();
-            if(!key) return;
-            localStorage.setItem('wolfApiKey', key);
-            checkApiKey();
-        }
-
-        function checkApiKey() {
-            if(localStorage.getItem('wolfApiKey')) {
-                document.getElementById('api-key-container').classList.add('hidden');
-                document.getElementById('btn-audit').classList.remove('hidden');
-            } else {
-                document.getElementById('api-key-container').classList.remove('hidden');
-                document.getElementById('btn-audit').classList.add('hidden');
-            }
-        }
-
-        function clearApiKey() {
-            localStorage.removeItem('wolfApiKey');
-            document.getElementById('ai-response').classList.add('hidden');
-            checkApiKey();
-        }
-
-        async function triggerWolfAudit() {
-            const key = localStorage.getItem('wolfApiKey');
-            if(!key) return alert("API Key missing.");
-
-            const btn = document.getElementById('btn-audit');
-            const out = document.getElementById('ai-response');
+            let dump = `WOLF PROTOCOL - DAILY CHECK-IN (${todayStr})\n\n`;
+            dump += "--- TODAY'S NUTRITION LOG ---\n";
+            if(tMeals.length === 0) dump += "NO FOOD LOGGED TODAY.\n";
+            tMeals.forEach(n => { dump += `[${new Date(n.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}] ${n.desc} (${n.pro}P/${n.carb}C/${n.fat}F)\n`; });
             
-            btn.innerText = "LINKING TO WOLF NEURAL NET...";
-            out.classList.remove('hidden');
-            out.innerText = "Transmitting today's data for assessment...";
-
-            // Isolate ONLY Today's Food
-            let todayStr = new Date().toLocaleDateString('en-US');
-            let todaysMeals = cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === todayStr);
-
-            let prompt = "You are Wolf, a ruthless, analytical fitness AI coach. I am working towards an aesthetic physique and a sub-12.5s 100m sprint.\n\n";
-            prompt += "--- TODAY'S NUTRITION LOG ---\n";
-            if (todaysMeals.length > 0) {
-                todaysMeals.forEach(n => { prompt += `[${new Date(n.timestamp).toLocaleTimeString()}] ${n.desc} (${n.pro}g Pro, ${n.carb}g Carb, ${n.fat}g Fat)\n`; });
-            } else {
-                prompt += "NO FOOD LOGGED TODAY.\n";
-            }
+            dump += "\n--- RECENT LIFT CONTEXT ---\n";
+            cloudData.history.slice(-5).forEach(h => { dump += `[${new Date(h.timestamp).toLocaleDateString()}] ${h.name}: ${h.metrics}\n`; });
+            dump += "\nGive me a brutal, 3-bullet assessment on my current trajectory.";
             
-            prompt += "\n--- RECENT LIFTS (Context) ---\n";
-            cloudData.history.slice(-5).forEach(h => { prompt += `[${h.timestamp}] ${h.name}: ${h.metrics}\n`; });
-            
-            prompt += "\nProvide a brutal, concise, 3-bullet daily assessment. Focus on my food intake today relative to my sprint/strength goals. Cut the fluff. Tell me what to fix right now.";
-
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-                
-                const data = await response.json();
-                if(data.error) throw new Error(data.error.message);
-                
-                out.innerText = data.candidates[0].content.parts[0].text.replace(/\*\*/g, ''); 
-                btn.innerText = "ASSESSMENT COMPLETE (RE-RUN)";
-                
-            } catch(e) {
-                out.innerText = "COMMUNICATION FAILURE: Check API key validity.";
-                btn.innerText = "ASSESS TODAY'S PERFORMANCE";
-            }
+            navigator.clipboard.writeText(dump);
+            alert("📋 Today's data copied. Paste into chat.");
         }
 
-        buildDateNav(); 
-        fetchCloudData();
+        function saveAIAssessment() {
+            const text = document.getElementById('ai-paste').value.trim();
+            if(!text) return alert("Paste the assessment first.");
+            
+            transmit({ type: "ai_log", timestamp: new Date().toLocaleString(), text: text });
+            document.getElementById('ai-paste').value = '';
+            alert("🔱 Assessment permanently locked into database.");
+        }
+
+        buildDateNav(); fetchCloudData();
     </script>
 </body>
 </html>
