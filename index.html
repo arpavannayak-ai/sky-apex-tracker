@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>🐺 SKY APEX V14.1</title>
+    <title>🐺 SKY APEX V14.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
@@ -12,6 +12,8 @@
         .day-btn.active { background-color: #00ff66; color: #000; font-weight: bold; border-color: #00ff66; }
         input, select, textarea { background-color: #111; border: 1px solid #333; color: #fff; }
         input:focus, select:focus, textarea:focus { border-color: #00ff66; outline: none; }
+        /* Style the time picker icon for dark mode */
+        ::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; }
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -31,9 +33,10 @@
         <button onclick="switchTab('summary')" id="btn-summary" class="tab-btn flex-1 py-2 text-center">DATA</button>
     </nav>
 
+    <div class="flex gap-2 overflow-x-auto pb-4 mb-2 border-b border-neutral-800" id="date-nav"></div>
+
     <main class="flex-1 overflow-y-auto">
         <section id="tab-exercise" class="space-y-4">
-            <div class="flex gap-2 overflow-x-auto pb-2 border-b border-neutral-800" id="date-nav"></div>
             <div id="workout-container" class="space-y-3"></div>
             
             <div class="bg-neutral-950 p-4 rounded border border-neutral-800 border-dashed space-y-2 mt-6">
@@ -50,15 +53,19 @@
 
         <section id="tab-nutrition" class="hidden space-y-4">
             <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
-                <h3 class="text-xs font-bold text-emerald-400">Log Nutrition Block</h3>
-                <input type="text" id="n-desc" placeholder="e.g. 250g Chicken, 150g Rice" class="w-full p-2 rounded text-sm">
-                <div class="grid grid-cols-4 gap-2">
-                    <div><label class="block text-[10px] text-neutral-400 mb-1">PRO</label><input type="number" id="n-p" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
-                    <div><label class="block text-[10px] text-neutral-400 mb-1">CARB</label><input type="number" id="n-c" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
-                    <div><label class="block text-[10px] text-neutral-400 mb-1">FAT</label><input type="number" id="n-f" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
-                    <div><label class="block text-[10px] text-neutral-400 mb-1">FIBER</label><input type="number" id="n-fi" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
+                <h3 class="text-xs font-bold text-emerald-400">Log Intake Block</h3>
+                <p class="text-[10px] text-neutral-500">Macros delegated to Wolf AI. Adjust time if backdating.</p>
+                
+                <div class="flex gap-2">
+                    <input type="time" id="n-time" class="p-2 rounded text-xs font-mono bg-black text-emerald-400 border border-neutral-800 w-1/3">
+                    <input type="text" id="n-desc" placeholder="e.g. 250g Chicken, 150g Rice" class="flex-1 p-2 rounded text-sm font-mono bg-black text-white border border-neutral-800">
                 </div>
-                <button onclick="saveNutrition()" class="w-full bg-emerald-700 text-black font-black py-3 rounded text-sm uppercase tracking-wider">Inject Fuel</button>
+                <button onclick="saveNutrition()" class="w-full bg-emerald-700 hover:bg-emerald-600 text-black font-black py-3 rounded text-sm uppercase tracking-wider transition">+ Log Meal</button>
+            </div>
+
+            <div class="space-y-2 mt-4">
+                <h4 class="text-[10px] font-bold text-neutral-500 uppercase border-b border-neutral-800 pb-1">Fuel Logged for Selected Date</h4>
+                <div id="nutrition-container" class="space-y-2"></div>
             </div>
         </section>
 
@@ -78,8 +85,8 @@
 
             <div class="p-4 bg-emerald-950/20 border border-emerald-500/30 rounded text-center space-y-2">
                 <p class="text-xs font-bold text-emerald-400">Wolf Protocol Comms</p>
-                <p class="text-[10px] text-neutral-400">Export today's pure data matrix. Paste it directly into our chat for your tactical assessment.</p>
-                <button onclick="copyDataForWolf()" class="w-full bg-emerald-600 text-black font-bold py-3 rounded text-xs uppercase tracking-widest">Copy Daily Dump</button>
+                <p class="text-[10px] text-neutral-400">Export today's pure data matrix. Paste it directly into our chat for your tactical assessment and macro crunching.</p>
+                <button onclick="copyDataForWolf()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-black font-bold py-3 rounded text-xs uppercase tracking-widest transition">Copy Daily Dump</button>
             </div>
         </section>
     </main>
@@ -91,6 +98,12 @@
         let cloudData = { program: [], history: [], nutrition: [] };
         let activeDate = new Date().toLocaleDateString('en-US');
 
+        // Initialize clock
+        function setCurrentTime() {
+            const now = new Date();
+            document.getElementById('n-time').value = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        }
+
         function buildDateNav() {
             const nav = document.getElementById('date-nav'); nav.innerHTML = ''; const today = new Date();
             for(let i = -2; i <= 4; i++) {
@@ -100,34 +113,39 @@
                 nav.innerHTML += `<button onclick="setDate('${dStr}', this)" class="${c}"><span class="text-[9px] font-bold">${dName}</span><span class="text-sm font-black">${dNum}</span></button>`;
             }
         }
+
         function setDate(dStr, btn) {
             activeDate = dStr;
             document.querySelectorAll('.day-btn').forEach(b => b.className = "day-btn min-w-[60px] py-2 rounded bg-neutral-900 border border-neutral-800 text-neutral-400 flex flex-col items-center justify-center");
             btn.className = "day-btn active min-w-[60px] py-2 rounded bg-emerald-600 text-black border border-emerald-500 flex flex-col items-center justify-center";
             renderWorkoutProgram();
+            renderNutritionFeed();
         }
+
         function switchTab(tab) {
             ['exercise', 'nutrition', 'summary'].forEach(t => { document.getElementById('tab-' + t).classList.add('hidden'); document.getElementById('btn-' + t).classList.remove('active'); });
             document.getElementById('tab-' + tab).classList.remove('hidden'); document.getElementById('btn-' + tab).classList.add('active');
+            if(tab === 'nutrition') setCurrentTime();
             if(tab === 'summary') computeSummary();
         }
+
         async function fetchCloudData() {
             document.getElementById('sync-status').innerText = "DOWNLOADING...";
             try {
                 let res = await fetch(SHEETS_API_URL); cloudData = await res.json();
                 document.getElementById('sync-status').innerText = "SYNCED: " + new Date().toLocaleTimeString();
                 renderWorkoutProgram();
+                renderNutritionFeed();
             } catch(e) { document.getElementById('sync-status').innerText = "OFFLINE"; }
         }
 
-        // ---- Fluid Workout Execution UI ----
+        // ---- LIFTING UI ----
         function renderWorkoutProgram() {
             const container = document.getElementById('workout-container'); container.innerHTML = '';
             let todaysLifts = cloudData.program.filter(p => p.date === activeDate);
             if(todaysLifts.length === 0) return container.innerHTML = `<p class="text-xs text-neutral-500 text-center italic mt-4">Rest Day or Unprogrammed.</p>`;
 
             todaysLifts.forEach((lift, exIndex) => {
-                // Render section titles
                 if(!lift.weight && !lift.sets) {
                     container.innerHTML += `<div class="mt-6 mb-2 border-b border-emerald-500/30 pb-1"><span class="text-xs font-black text-emerald-500 uppercase tracking-widest">${lift.name}</span></div>`;
                     return;
@@ -136,7 +154,6 @@
                 let pastMatch = cloudData.history.find(h => h.name.toLowerCase() === lift.name.toLowerCase());
                 let pastText = pastMatch ? `LAST: ${pastMatch.metrics}` : "NO HISTORY";
 
-                // Generate ONLY exactly 1 row by default
                 let rowsHTML = generateSetRow(exIndex, 0, lift.name);
 
                 container.innerHTML += `
@@ -218,13 +235,59 @@
             alert("🔱 Logged."); ['manual-name','manual-weight','manual-reps','manual-rpe'].forEach(id => document.getElementById(id).value = '');
         }
 
-        function saveNutrition() {
-            const desc = document.getElementById('n-desc').value; if(!desc) return;
-            transmit({ type: "nutrition", timestamp: new Date().toLocaleString(), desc: desc, protein: parseInt(document.getElementById('n-p').value)||0, carbs: parseInt(document.getElementById('n-c').value)||0, fats: parseInt(document.getElementById('n-f').value)||0, fiber: parseInt(document.getElementById('n-fi').value)||0 });
-            document.getElementById('n-desc').value = ''; ['n-p','n-c','n-f','n-fi'].forEach(id => document.getElementById(id).value = 0);
-            alert("Fuel Injected."); fetchCloudData();
+        // ---- NUTRITION UI ----
+        function renderNutritionFeed() {
+            const container = document.getElementById('nutrition-container'); container.innerHTML = '';
+            let tMeals = cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === activeDate);
+            
+            if(tMeals.length === 0) return container.innerHTML = `<p class="text-[10px] text-neutral-500 italic">No fuel logged for this date.</p>`;
+            
+            tMeals.forEach(meal => {
+                let tStr = new Date(meal.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                // Check if AI/User has updated the macros in the sheet
+                let mStr = (meal.pro > 0 || meal.carb > 0 || meal.fat > 0) 
+                    ? `<span class="text-emerald-500 text-[9px] font-mono block mt-1">${meal.pro}P / ${meal.carb}C / ${meal.fat}F</span>` 
+                    : `<span class="text-neutral-500 text-[9px] font-mono block italic mt-1">Pending AI Macro Audit</span>`;
+                
+                container.innerHTML += `
+                <div class="bg-black p-2 rounded border border-neutral-800 text-xs flex justify-between items-start">
+                    <div class="flex flex-col pr-2">
+                        <span class="text-white">${meal.desc}</span>
+                        ${mStr}
+                    </div>
+                    <span class="text-neutral-500 font-mono text-[10px] whitespace-nowrap mt-0.5">${tStr}</span>
+                </div>`;
+            });
         }
 
+        function saveNutrition() {
+            const desc = document.getElementById('n-desc').value; 
+            const timeVal = document.getElementById('n-time').value;
+            if(!desc) return alert("Meal description required.");
+
+            // Apply selected time to the active calendar date
+            let mealDate = new Date(activeDate);
+            if(timeVal) {
+                let [hours, minutes] = timeVal.split(':');
+                mealDate.setHours(hours, minutes, 0, 0);
+            }
+
+            transmit({ 
+                type: "nutrition", 
+                timestamp: mealDate.toLocaleString(), 
+                desc: desc, 
+                protein: 0, carbs: 0, fats: 0, fiber: 0 
+            });
+            
+            document.getElementById('n-desc').value = ''; 
+            setCurrentTime(); // reset clock
+            
+            // Optimistic UI update
+            cloudData.nutrition.push({ timestamp: mealDate.toLocaleString(), desc: desc, pro: 0, carb: 0, fat: 0 });
+            renderNutritionFeed();
+        }
+
+        // ---- DATA & COMMS ----
         function computeSummary() {
             document.getElementById('sum-workouts').innerText = cloudData.history.length || 0;
             if(cloudData.nutrition.length > 0) {
@@ -234,26 +297,25 @@
         }
 
         function copyDataForWolf() {
-            let todayStr = new Date().toLocaleDateString('en-US');
-            let tMeals = cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === todayStr);
-            let tLifts = cloudData.history.filter(h => new Date(h.timestamp).toLocaleDateString('en-US') === todayStr);
+            let tMeals = cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === activeDate);
+            let tLifts = cloudData.history.filter(h => new Date(h.timestamp).toLocaleDateString('en-US') === activeDate);
             
-            let dump = `WOLF PROTOCOL - DAILY END-OF-DAY DUMP (${todayStr})\n\n`;
-            dump += "--- NUTRITION ---\n";
+            let dump = `WOLF PROTOCOL - END OF DAY DUMP (${activeDate})\n\n`;
+            dump += "--- NUTRITION LOG ---\n";
             if(tMeals.length === 0) dump += "NO FOOD LOGGED.\n";
-            tMeals.forEach(n => { dump += `- ${n.desc} (${n.pro}P/${n.carb}C/${n.fat}F)\n`; });
+            tMeals.forEach(n => { dump += `[${new Date(n.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}] ${n.desc}\n`; });
             
-            dump += "\n--- LIFTS & PROTOCOL ---\n";
+            dump += "\n--- LIFT METRICS ---\n";
             if(tLifts.length === 0) dump += "NO LIFTS LOGGED.\n";
             tLifts.forEach(h => { dump += `- ${h.name}: ${h.metrics}\n`; });
             
-            dump += "\nEvaluate my compliance and give me tomorrow's adjustments.";
+            dump += "\nCrunch these macros and give me my compliance rating.";
             
             navigator.clipboard.writeText(dump);
             alert("📋 End-of-Day data copied. Paste it into the Wolf chat.");
         }
 
-        buildDateNav(); fetchCloudData();
+        buildDateNav(); setCurrentTime(); fetchCloudData();
     </script>
 </body>
 </html>
