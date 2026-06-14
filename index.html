@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>🐺 SKY APEX V8</title>
+    <title>🐺 SKY APEX V9</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
         .tab-btn.active { color: #00ff66; border-bottom: 2px solid #00ff66; font-weight: bold; }
-        .day-btn.active { background-color: #00ff66; color: #000; font-weight: bold; }
+        .day-btn.active { background-color: #00ff66; color: #000; font-weight: bold; border-color: #00ff66; }
         input, select, textarea { background-color: #111; border: 1px solid #333; color: #fff; }
         input:focus, select:focus, textarea:focus { border-color: #00ff66; outline: none; }
         ::-webkit-scrollbar { display: none; }
@@ -34,15 +34,8 @@
     <main class="flex-1 overflow-y-auto">
         
         <section id="tab-exercise" class="space-y-4">
-            <div class="flex gap-2 overflow-x-auto pb-2 border-b border-neutral-800" id="day-nav">
-                <button onclick="setDay('MONDAY')" id="day-MONDAY" class="day-btn min-w-[60px] py-1 rounded bg-neutral-900 border border-neutral-800 text-xs">MON</button>
-                <button onclick="setDay('TUESDAY')" id="day-TUESDAY" class="day-btn min-w-[60px] py-1 rounded bg-neutral-900 border border-neutral-800 text-xs">TUE</button>
-                <button onclick="setDay('WEDNESDAY')" id="day-WEDNESDAY" class="day-btn min-w-[60px] py-1 rounded bg-neutral-900 border border-neutral-800 text-xs">WED</button>
-                <button onclick="setDay('THURSDAY')" id="day-THURSDAY" class="day-btn min-w-[60px] py-1 rounded bg-neutral-900 border border-neutral-800 text-xs">THU</button>
-                <button onclick="setDay('FRIDAY')" id="day-FRIDAY" class="day-btn min-w-[60px] py-1 rounded bg-neutral-900 border border-neutral-800 text-xs">FRI</button>
-                <button onclick="setDay('SATURDAY')" id="day-SATURDAY" class="day-btn min-w-[60px] py-1 rounded bg-neutral-900 border border-neutral-800 text-xs">SAT</button>
-                <button onclick="setDay('SUNDAY')" id="day-SUNDAY" class="day-btn min-w-[60px] py-1 rounded bg-neutral-900 border border-neutral-800 text-xs">SUN</button>
-            </div>
+            <div class="flex gap-2 overflow-x-auto pb-2 border-b border-neutral-800" id="date-nav">
+                </div>
 
             <div id="workout-container" class="space-y-3">
                 </div>
@@ -103,11 +96,45 @@
     </main>
 
     <script>
-        // PASTE YOUR V8 APPS SCRIPT URL HERE
+        // PASTE YOUR V9 APPS SCRIPT URL HERE
         const SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbzG-bHDac99hndYrBkbDdfBH5mnLhk-G3RkY7zJjcwbEKbN0_VJvwLJXiviT4R59oCfPA/exec";
 
         let cloudData = { program: [], history: [], nutrition: [] };
-        let activeDay = "MONDAY";
+        let activeDate = new Date().toLocaleDateString('en-US'); // Format: M/D/YYYY
+
+        function buildDateNav() {
+            const nav = document.getElementById('date-nav');
+            nav.innerHTML = '';
+            const today = new Date();
+            
+            // Rolling Calendar: 2 days back, today, 4 days forward
+            for(let i = -2; i <= 4; i++) {
+                let targetDate = new Date();
+                targetDate.setDate(today.getDate() + i);
+                
+                let matchString = targetDate.toLocaleDateString('en-US'); 
+                let dayName = targetDate.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+                let dayNum = targetDate.getDate();
+                
+                let btnClass = (i === 0) 
+                    ? "day-btn active min-w-[60px] py-2 rounded bg-emerald-600 text-black border border-emerald-500 flex flex-col items-center justify-center" 
+                    : "day-btn min-w-[60px] py-2 rounded bg-neutral-900 border border-neutral-800 text-neutral-400 flex flex-col items-center justify-center";
+                
+                nav.innerHTML += `<button onclick="setDate('${matchString}', this)" class="${btnClass}">
+                    <span class="text-[9px] font-bold">${dayName}</span>
+                    <span class="text-sm font-black">${dayNum}</span>
+                </button>`;
+            }
+        }
+
+        function setDate(dateStr, btnElement) {
+            activeDate = dateStr;
+            document.querySelectorAll('.day-btn').forEach(btn => {
+                btn.className = "day-btn min-w-[60px] py-2 rounded bg-neutral-900 border border-neutral-800 text-neutral-400 flex flex-col items-center justify-center";
+            });
+            btnElement.className = "day-btn active min-w-[60px] py-2 rounded bg-emerald-600 text-black border border-emerald-500 flex flex-col items-center justify-center";
+            renderWorkoutProgram();
+        }
 
         function switchTab(tab) {
             ['exercise', 'nutrition', 'summary'].forEach(t => {
@@ -125,29 +152,21 @@
                 let res = await fetch(SHEETS_API_URL);
                 cloudData = await res.json();
                 document.getElementById('sync-status').innerText = "NETWORK SYNCED: " + new Date().toLocaleTimeString();
-                
-                const days = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
-                setDay(days[new Date().getDay()]);
+                renderWorkoutProgram();
             } catch(e) {
                 document.getElementById('sync-status').innerText = "OFFLINE OR ERROR";
             }
-        }
-
-        function setDay(dayStr) {
-            activeDay = dayStr;
-            document.querySelectorAll('.day-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('day-' + dayStr).classList.add('active');
-            renderWorkoutProgram();
         }
 
         function renderWorkoutProgram() {
             const container = document.getElementById('workout-container');
             container.innerHTML = '';
             
-            let todaysLifts = cloudData.program.filter(p => p.day === activeDay);
+            // Filter by the selected date string
+            let todaysLifts = cloudData.program.filter(p => p.date === activeDate);
             
             if(todaysLifts.length === 0) {
-                container.innerHTML = `<p class="text-xs text-neutral-500 text-center italic mt-4">Rest Day or Unprogrammed. Off-Grid Protocol Active.</p>`;
+                container.innerHTML = `<p class="text-xs text-neutral-500 text-center italic mt-4">Rest Day or Unprogrammed Grid.</p>`;
                 return;
             }
 
@@ -254,6 +273,8 @@
             alert("📋 Last 10 meals copied to clipboard. Paste this directly to Wolf in our chat.");
         }
 
+        // Initialize App
+        buildDateNav();
         fetchCloudData();
     </script>
 </body>
