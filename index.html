@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>🐺 SKY APEX V5</title>
+    <title>🐺 SKY APEX V8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
         .tab-btn.active { color: #00ff66; border-bottom: 2px solid #00ff66; font-weight: bold; }
+        .day-btn.active { background-color: #00ff66; color: #000; font-weight: bold; }
         input, select, textarea { background-color: #111; border: 1px solid #333; color: #fff; }
         input:focus, select:focus, textarea:focus { border-color: #00ff66; outline: none; }
         ::-webkit-scrollbar { display: none; }
@@ -21,171 +20,204 @@
     <header class="py-4 flex justify-between items-center">
         <div>
             <h1 class="text-2xl font-black tracking-tighter text-white">🐺 SKY APEX</h1>
-            <p class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Two-Way Cloud Sync Engaged</p>
+            <p id="sync-status" class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Awaiting Network Sync...</p>
         </div>
-        <button onclick="fetchSheetHistory()" class="text-[10px] bg-neutral-900 border border-neutral-700 px-2 py-1 rounded hover:bg-neutral-800 text-neutral-400">🔄 SYNC</button>
+        <button onclick="fetchCloudData()" class="text-[10px] bg-neutral-900 border border-neutral-700 px-2 py-1 rounded hover:bg-neutral-800 text-neutral-400">🔄 SYNC</button>
     </header>
 
-    <nav class="flex border-b border-neutral-800 mb-4 text-xs">
-        <button onclick="switchTab('morning')" id="btn-morning" class="tab-btn active flex-1 py-2 text-center">🌅 DAWN</button>
-        <button onclick="switchTab('exercise')" id="btn-exercise" class="tab-btn flex-1 py-2 text-center">🏋️‍♂️ LIFT</button>
-        <button onclick="switchTab('nutrition')" id="btn-nutrition" class="tab-btn flex-1 py-2 text-center">🍗 FUEL</button>
+    <nav class="flex border-b border-neutral-800 mb-4 text-[10px] font-bold tracking-wider">
+        <button onclick="switchTab('exercise')" id="btn-exercise" class="tab-btn active flex-1 py-2 text-center">LIFT</button>
+        <button onclick="switchTab('nutrition')" id="btn-nutrition" class="tab-btn flex-1 py-2 text-center">FUEL</button>
+        <button onclick="switchTab('summary')" id="btn-summary" class="tab-btn flex-1 py-2 text-center">DATA</button>
     </nav>
 
     <main class="flex-1 overflow-y-auto">
         
-        <section id="tab-morning" class="space-y-4">
-            <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-4">
-                <div class="space-y-2">
-                    <label class="block text-xs font-bold text-emerald-400">Anchor Weight (KG)</label>
-                    <input type="number" step="0.01" id="m-weight" placeholder="00.00" class="w-full p-2 rounded text-lg font-bold">
-                </div>
-                <div class="space-y-1">
-                    <label class="block text-xs font-bold text-emerald-400 mb-2">Respiratory & Core Protocol</label>
-                    <label class="flex items-center gap-2 p-2 bg-black rounded border border-neutral-800"><input type="checkbox" id="m-croc" class="accent-emerald-500 w-4 h-4"><span class="text-xs">3m Crocodile Breath</span></label>
-                    <label class="flex items-center gap-2 p-2 bg-black rounded border border-neutral-800"><input type="checkbox" id="m-struct" class="accent-emerald-500 w-4 h-4"><span class="text-xs">15x 90/90 Struct Breath</span></label>
-                    <label class="flex items-center gap-2 p-2 bg-black rounded border border-neutral-800"><input type="checkbox" id="m-rib" class="accent-emerald-500 w-4 h-4"><span class="text-xs">10x Lateral Rib Exp</span></label>
-                    <label class="flex items-center gap-2 p-2 bg-black rounded border border-neutral-800"><input type="checkbox" id="m-bird" class="accent-emerald-500 w-4 h-4"><span class="text-xs">5x5s Rev Bird Dog</span></label>
-                    <label class="flex items-center gap-2 p-2 bg-black rounded border border-neutral-800"><input type="checkbox" id="m-bug" class="accent-emerald-500 w-4 h-4"><span class="text-xs">20s Dead Bug Hold</span></label>
-                </div>
-                <button onclick="saveMorning()" class="w-full bg-emerald-700 text-black font-black py-3 rounded text-sm uppercase tracking-wider">Transmit Baseline</button>
-            </div>
-        </section>
-
-        <section id="tab-exercise" class="hidden space-y-4">
-            <div id="overload-panel" class="bg-emerald-950/30 border border-emerald-500/30 p-3 rounded text-xs hidden">
-                <span class="text-emerald-400 font-bold block mb-1">🎯 PROGRESSIVE OVERLOAD TARGET:</span>
-                <p id="target-output" class="text-white font-mono font-bold text-sm">Searching records...</p>
+        <section id="tab-exercise" class="space-y-4">
+            <div class="flex gap-2 overflow-x-auto pb-2 border-b border-neutral-800" id="day-nav">
+                <button onclick="setDay('MONDAY')" id="day-MONDAY" class="day-btn min-w-[60px] py-1 rounded bg-neutral-900 border border-neutral-800 text-xs">MON</button>
+                <button onclick="setDay('TUESDAY')" id="day-TUESDAY" class="day-btn min-w-[60px] py-1 rounded bg-neutral-900 border border-neutral-800 text-xs">TUE</button>
+                <button onclick="setDay('WEDNESDAY')" id="day-WEDNESDAY" class="day-btn min-w-[60px] py-1 rounded bg-neutral-900 border border-neutral-800 text-xs">WED</button>
+                <button onclick="setDay('THURSDAY')" id="day-THURSDAY" class="day-btn min-w-[60px] py-1 rounded bg-neutral-900 border border-neutral-800 text-xs">THU</button>
+                <button onclick="setDay('FRIDAY')" id="day-FRIDAY" class="day-btn min-w-[60px] py-1 rounded bg-neutral-900 border border-neutral-800 text-xs">FRI</button>
+                <button onclick="setDay('SATURDAY')" id="day-SATURDAY" class="day-btn min-w-[60px] py-1 rounded bg-neutral-900 border border-neutral-800 text-xs">SAT</button>
+                <button onclick="setDay('SUNDAY')" id="day-SUNDAY" class="day-btn min-w-[60px] py-1 rounded bg-neutral-900 border border-neutral-800 text-xs">SUN</button>
             </div>
 
-            <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
-                <div>
-                    <label class="block text-xs text-emerald-400 font-bold mb-1">Movement Focus</label>
-                    <input type="text" id="e-name" oninput="checkOverloadTarget(this.value)" placeholder="Type exercise name..." class="w-full p-2 rounded text-sm">
+            <div id="workout-container" class="space-y-3">
                 </div>
-                <div>
-                    <label class="block text-xs text-emerald-400 font-bold mb-1">Today's Performance Metric</label>
-                    <input type="text" id="e-metrics" placeholder="e.g. 42.5kg x 8, 8, 8" class="w-full p-2 rounded text-sm font-mono">
+            
+            <div class="bg-neutral-950 p-4 rounded border border-neutral-800 border-dashed space-y-2 mt-6">
+                <p class="text-[10px] text-neutral-500 uppercase">Off-Program Manual Entry</p>
+                <input type="text" id="manual-name" placeholder="Exercise Name" class="w-full p-2 rounded text-xs">
+                <div class="flex gap-2">
+                    <input type="number" id="manual-weight" placeholder="Weight" class="flex-1 p-2 rounded text-xs text-center font-mono">
+                    <input type="text" id="manual-reps" placeholder="Reps/Time" class="flex-[1.5] p-2 rounded text-xs text-center font-mono">
+                    <input type="number" step="0.5" id="manual-rpe" placeholder="RPE" class="flex-1 p-2 rounded text-xs text-center font-mono">
                 </div>
-                <button onclick="saveExercise()" class="w-full bg-emerald-700 text-black font-black py-3 rounded text-sm uppercase tracking-wider">Lock Output Matrix</button>
+                <button onclick="saveManualExercise()" class="w-full bg-neutral-800 text-white font-bold py-2 rounded text-xs uppercase">Log Manual</button>
             </div>
         </section>
 
         <section id="tab-nutrition" class="hidden space-y-4">
-            <div class="grid grid-cols-4 gap-2 bg-neutral-900 p-3 rounded border border-neutral-800 text-center">
-                <div class="bg-black p-2 rounded border border-neutral-800"><p class="text-[10px] text-neutral-400">PRO</p><p id="dash-p" class="text-sm font-bold text-emerald-400">0g</p></div>
-                <div class="bg-black p-2 rounded border border-neutral-800"><p class="text-[10px] text-neutral-400">CARB</p><p id="dash-c" class="text-sm font-bold text-amber-500">0g</p></div>
-                <div class="bg-black p-2 rounded border border-neutral-800"><p class="text-[10px] text-neutral-400">FAT</p><p id="dash-f" class="text-sm font-bold text-red-400">0g</p></div>
-                <div class="bg-black p-2 rounded border border-neutral-800"><p class="text-[10px] text-neutral-400">FIBER</p><p id="dash-fi" class="text-sm font-bold text-blue-400">0g</p></div>
-            </div>
-
             <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
-                <div>
-                    <label class="block text-xs text-emerald-400 font-bold mb-1">Meal / Intake Items</label>
-                    <input type="text" id="n-desc" placeholder="e.g. Whey, Eggs, Chicken Breast" class="w-full p-2 rounded text-sm">
-                </div>
+                <h3 class="text-xs font-bold text-emerald-400">Log Nutrition Block</h3>
+                <input type="text" id="n-desc" placeholder="e.g. 250g Chicken, 150g Rice" class="w-full p-2 rounded text-sm">
                 <div class="grid grid-cols-4 gap-2">
-                    <div><label class="block text-[10px] text-neutral-400 mb-1">Protein</label><input type="number" id="n-p" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
-                    <div><label class="block text-[10px] text-neutral-400 mb-1">Carbs</label><input type="number" id="n-c" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
-                    <div><label class="block text-[10px] text-neutral-400 mb-1">Fats</label><input type="number" id="n-f" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
-                    <div><label class="block text-[10px] text-neutral-400 mb-1">Fiber</label><input type="number" id="n-fi" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
+                    <div><label class="block text-[10px] text-neutral-400 mb-1">PRO (g)</label><input type="number" id="n-p" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
+                    <div><label class="block text-[10px] text-neutral-400 mb-1">CARB (g)</label><input type="number" id="n-c" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
+                    <div><label class="block text-[10px] text-neutral-400 mb-1">FAT (g)</label><input type="number" id="n-f" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
+                    <div><label class="block text-[10px] text-neutral-400 mb-1">FIBER (g)</label><input type="number" id="n-fi" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
                 </div>
-                <button onclick="saveNutrition()" class="w-full bg-emerald-700 text-black font-black py-3 rounded text-sm uppercase tracking-wider">Log Macro Stream</button>
+                <button onclick="saveNutrition()" class="w-full bg-emerald-700 text-black font-black py-3 rounded text-sm uppercase tracking-wider">Inject Fuel</button>
+            </div>
+            
+            <div class="bg-emerald-950/20 p-3 rounded border border-emerald-500/30 text-center">
+                <p class="text-xs text-emerald-400 font-bold mb-2">Wolf Protocol Comms Pipeline</p>
+                <button onclick="copyDataForWolf()" class="w-full bg-neutral-800 hover:bg-neutral-700 text-emerald-400 text-[10px] font-bold py-2 rounded uppercase border border-emerald-500/50">Copy Weekly Logs for AI Feedback</button>
+            </div>
+        </section>
+
+        <section id="tab-summary" class="hidden space-y-4">
+            <h2 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Weekly Matrix Dashboard</h2>
+            
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-neutral-900 p-4 rounded border border-neutral-800 text-center flex flex-col justify-center">
+                    <p class="text-[10px] text-neutral-500 uppercase">Workouts Logged</p>
+                    <p id="sum-workouts" class="text-2xl font-black text-white">--</p>
+                </div>
+                <div class="bg-neutral-900 p-4 rounded border border-neutral-800 text-center flex flex-col justify-center">
+                    <p class="text-[10px] text-neutral-500 uppercase">Avg Daily Protein</p>
+                    <p id="sum-protein" class="text-2xl font-black text-emerald-400">-- g</p>
+                </div>
+                <div class="bg-neutral-900 p-4 rounded border border-neutral-800 text-center flex flex-col justify-center">
+                    <p class="text-[10px] text-neutral-500 uppercase">Avg Daily Carbs</p>
+                    <p id="sum-carbs" class="text-2xl font-black text-amber-500">-- g</p>
+                </div>
+                <div class="bg-neutral-900 p-4 rounded border border-neutral-800 text-center flex flex-col justify-center">
+                    <p class="text-[10px] text-neutral-500 uppercase">Total Intake Blocks</p>
+                    <p id="sum-meals" class="text-2xl font-black text-blue-400">--</p>
+                </div>
             </div>
         </section>
     </main>
 
     <script>
-        // CORE CONFIGURATION LINK TO GOOGLE SHEETS API
-        const SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbzZFDVjxNTZ6SOPx7Y2hpIw9xAxQN2uaIgkTTtXrEIPfMfgozWtl5GF5giweWE96ZyMCQ/exec";
+        // PASTE YOUR V8 APPS SCRIPT URL HERE
+        const SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbzG-bHDac99hndYrBkbDdfBH5mnLhk-G3RkY7zJjcwbEKbN0_VJvwLJXiviT4R59oCfPA/exec";
 
-        let exerciseHistory = [];
-        let dailyMacros = { protein: 0, carbs: 0, fats: 0, fiber: 0 };
+        let cloudData = { program: [], history: [], nutrition: [] };
+        let activeDay = "MONDAY";
 
         function switchTab(tab) {
-            ['morning', 'exercise', 'nutrition'].forEach(t => {
+            ['exercise', 'nutrition', 'summary'].forEach(t => {
                 document.getElementById('tab-' + t).classList.add('hidden');
                 document.getElementById('btn-' + t).classList.remove('active');
             });
             document.getElementById('tab-' + tab).classList.remove('hidden');
             document.getElementById('btn-' + tab).classList.add('active');
+            if(tab === 'summary') computeSummary();
         }
 
-        // Pull previous metrics history from Google Sheets
-        async function fetchSheetHistory() {
+        async function fetchCloudData() {
+            document.getElementById('sync-status').innerText = "DOWNLOADING MATRIX...";
             try {
-                let response = await fetch(SHEETS_API_URL);
-                exerciseHistory = await response.json();
-                console.log("Database history pulled successfully.", exerciseHistory);
-            } catch (err) {
-                console.error("History sync blackout.", err);
-            }
-        }
-
-        // Real-time lookup for progressive overload matching
-        function checkOverloadTarget(inputName) {
-            const panel = document.getElementById('overload-panel');
-            const output = document.getElementById('target-output');
-            if(!inputName.trim()) { panel.classList.add('hidden'); return; }
-
-            // Find the most recent matching record in database array
-            let match = exerciseHistory.find(item => item.name.toLowerCase().trim() === inputName.toLowerCase().trim());
-            
-            panel.classList.remove('hidden');
-            if(match) {
-                output.innerText = `LAST SESSION: ${match.metrics}`;
-                output.className = "text-emerald-400 font-mono font-bold text-sm animate-pulse";
-            } else {
-                output.innerText = "NO PREVIOUS MATRIX DATA FOUND. BASELINE SESSION.";
-                output.className = "text-neutral-500 font-mono text-xs";
-            }
-        }
-
-        async function transmitToCloud(payload) {
-            try {
-                await fetch(SHEETS_API_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                alert("🔱 Metrics successfully written into Cloud Registry.");
-                fetchSheetHistory(); // Refresh background target pool
+                let res = await fetch(SHEETS_API_URL);
+                cloudData = await res.json();
+                document.getElementById('sync-status').innerText = "NETWORK SYNCED: " + new Date().toLocaleTimeString();
+                
+                const days = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
+                setDay(days[new Date().getDay()]);
             } catch(e) {
-                alert("Data loss averted. Link interrupted.");
+                document.getElementById('sync-status').innerText = "OFFLINE OR ERROR";
             }
         }
 
-        function saveMorning() {
-            const w = document.getElementById('m-weight').value;
-            if(!w) return alert("Weight verification required.");
-            transmitToCloud({
-                type: "morning",
-                date: new Date().toLocaleDateString(),
-                weight: w,
-                croc: document.getElementById('m-croc').checked ? "YES":"NO",
-                struct: document.getElementById('m-struct').checked ? "YES":"NO",
-                rib: document.getElementById('m-rib').checked ? "YES":"NO",
-                bird: document.getElementById('m-bird').checked ? "YES":"NO",
-                bug: document.getElementById('m-bug').checked ? "YES":"NO",
-                hold: document.getElementById('m-hold').checked ? "YES":"NO"
+        function setDay(dayStr) {
+            activeDay = dayStr;
+            document.querySelectorAll('.day-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('day-' + dayStr).classList.add('active');
+            renderWorkoutProgram();
+        }
+
+        function renderWorkoutProgram() {
+            const container = document.getElementById('workout-container');
+            container.innerHTML = '';
+            
+            let todaysLifts = cloudData.program.filter(p => p.day === activeDay);
+            
+            if(todaysLifts.length === 0) {
+                container.innerHTML = `<p class="text-xs text-neutral-500 text-center italic mt-4">Rest Day or Unprogrammed. Off-Grid Protocol Active.</p>`;
+                return;
+            }
+
+            todaysLifts.forEach((lift, index) => {
+                let pastMatch = cloudData.history.find(h => h.name.toLowerCase() === lift.name.toLowerCase());
+                let pastText = pastMatch ? `LAST: ${pastMatch.metrics}` : "NO HISTORY";
+
+                container.innerHTML += `
+                <div class="bg-neutral-900 p-3 rounded border border-neutral-800">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-bold text-white uppercase">${lift.name}</span>
+                        <div class="flex gap-1">
+                            <span class="text-[10px] bg-neutral-950 text-neutral-400 px-1.5 py-0.5 rounded border border-neutral-800 font-bold">${lift.weight} KG</span>
+                            <span class="text-[10px] bg-emerald-950 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-800 font-bold">🎯 RPE ${lift.rpe}</span>
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-neutral-400 mb-3 flex flex-wrap gap-2 items-center">
+                        <span class="font-mono bg-black border border-neutral-800 px-1.5 py-0.5 rounded">${lift.sets} SETS</span>
+                        <span class="font-mono bg-black border border-neutral-800 px-1.5 py-0.5 rounded">${lift.reps} REPS</span>
+                        <span class="italic text-emerald-500/70">"${lift.instr}"</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <input type="number" id="log-weight-${index}" placeholder="Weight" class="flex-1 p-1.5 rounded text-xs text-center font-mono bg-black">
+                        <input type="text" id="log-reps-${index}" placeholder="Reps/Time" class="flex-[1.5] p-1.5 rounded text-xs text-center font-mono bg-black">
+                        <input type="number" step="0.5" id="log-rpe-${index}" placeholder="RPE" class="flex-1 p-1.5 rounded text-xs text-center font-mono bg-black">
+                        <button onclick="logProgrammedLift('${lift.name}', ${index})" class="bg-emerald-600 text-black text-[10px] font-bold px-3 py-1.5 rounded uppercase border border-emerald-500">Lock</button>
+                    </div>
+                    <p class="text-[9px] text-neutral-500 mt-1 font-mono">${pastText}</p>
+                </div>`;
             });
         }
 
-        function saveExercise() {
-            const n = document.getElementById('e-name').value;
-            const m = document.getElementById('e-metrics').value;
-            if(!n || !m) return alert("Inputs missing.");
-            transmitToCloud({
-                type: "exercise",
-                timestamp: new Date().toLocaleString(),
-                name: n,
-                metrics: m,
-                notes: "PWA Uplink Entry"
-            });
-            document.getElementById('e-name').value = '';
-            document.getElementById('e-metrics').value = '';
-            document.getElementById('overload-panel').classList.add('hidden');
+        async function transmit(payload) {
+            try {
+                await fetch(SHEETS_API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                alert("🔱 Matrix output locked to core database.");
+            } catch(e) { alert("Data recorded locally. Sync pending."); }
+        }
+
+        function logProgrammedLift(name, index) {
+            const w = document.getElementById('log-weight-' + index).value;
+            const rep = document.getElementById('log-reps-' + index).value;
+            const rpe = document.getElementById('log-rpe-' + index).value;
+            
+            if(!w || !rep) return alert("Weight and Reps are mandatory variables.");
+            
+            let finalMetrics = `${w}kg x ${rep}`;
+            if(rpe) finalMetrics += ` @ RPE ${rpe}`;
+
+            transmit({ type: "exercise", timestamp: new Date().toLocaleString(), name: name, metrics: finalMetrics, notes: "Programmed Matrix" });
+            
+            document.getElementById('log-weight-' + index).value = '';
+            document.getElementById('log-reps-' + index).value = 'LOCKED 🔱';
+            document.getElementById('log-rpe-' + index).value = '';
+        }
+
+        function saveManualExercise() {
+            const n = document.getElementById('manual-name').value;
+            const w = document.getElementById('manual-weight').value;
+            const rep = document.getElementById('manual-reps').value;
+            const rpe = document.getElementById('manual-rpe').value;
+            
+            if(!n || !w || !rep) return alert("Name, Weight, and Reps required.");
+
+            let finalMetrics = `${w}kg x ${rep}`;
+            if(rpe) finalMetrics += ` @ RPE ${rpe}`;
+
+            transmit({ type: "exercise", timestamp: new Date().toLocaleString(), name: n, metrics: finalMetrics, notes: "Manual Entry" });
+            
+            ['manual-name', 'manual-weight', 'manual-reps', 'manual-rpe'].forEach(id => document.getElementById(id).value = '');
         }
 
         function saveNutrition() {
@@ -194,39 +226,35 @@
             const c = parseInt(document.getElementById('n-c').value) || 0;
             const f = parseInt(document.getElementById('n-f').value) || 0;
             const fi = parseInt(document.getElementById('n-fi').value) || 0;
+            if(!desc) return;
 
-            if(!desc) return alert("Item description required.");
-
-            // Update local daily total dashboard
-            dailyMacros.protein += p;
-            dailyMacros.carbs += c;
-            dailyMacros.fats += f;
-            dailyMacros.fiber += fi;
-
-            document.getElementById('dash-p').innerText = dailyMacros.protein + 'g';
-            document.getElementById('dash-c').innerText = dailyMacros.carbs + 'g';
-            document.getElementById('dash-f').innerText = dailyMacros.fats + 'g';
-            document.getElementById('dash-fi').innerText = dailyMacros.fiber + 'g';
-
-            transmitToCloud({
-                type: "nutrition",
-                timestamp: new Date().toLocaleString(),
-                desc: desc,
-                protein: p,
-                carbs: c,
-                fats: f,
-                fiber: fi
-            });
-
+            transmit({ type: "nutrition", timestamp: new Date().toLocaleString(), desc: desc, protein: p, carbs: c, fats: f, fiber: fi });
             document.getElementById('n-desc').value = '';
-            document.getElementById('n-p').value = 0;
-            document.getElementById('n-c').value = 0;
-            document.getElementById('n-f').value = 0;
-            document.getElementById('n-fi').value = 0;
+            ['n-p','n-c','n-f','n-fi'].forEach(id => document.getElementById(id).value = 0);
         }
 
-        // Hydrate background system memory immediately on load
-        fetchSheetHistory();
+        function computeSummary() {
+            document.getElementById('sum-workouts').innerText = cloudData.history.length || 0;
+            if(cloudData.nutrition.length > 0) {
+                document.getElementById('sum-meals').innerText = cloudData.nutrition.length;
+                let totalPro = cloudData.nutrition.reduce((sum, item) => sum + (Number(item.pro) || 0), 0);
+                let totalCarb = cloudData.nutrition.reduce((sum, item) => sum + (Number(item.carb) || 0), 0);
+                document.getElementById('sum-protein').innerText = Math.round(totalPro / 7);
+                document.getElementById('sum-carbs').innerText = Math.round(totalCarb / 7);
+            }
+        }
+
+        function copyDataForWolf() {
+            let dataDump = "WOLF PROTOCOL NUTRITION LOG:\n";
+            cloudData.nutrition.slice(-10).forEach(n => {
+                dataDump += `[${n.timestamp}] ${n.desc} | ${n.pro}P / ${n.carb}C / ${n.fat}F\n`;
+            });
+            dataDump += "\nGive me your brutal analysis on my macro alignment.";
+            navigator.clipboard.writeText(dataDump);
+            alert("📋 Last 10 meals copied to clipboard. Paste this directly to Wolf in our chat.");
+        }
+
+        fetchCloudData();
     </script>
 </body>
 </html>
