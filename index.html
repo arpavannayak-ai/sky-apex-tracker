@@ -2,28 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- PWA Meta Tags for Native App Illusion -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>🐺 SKY APEX</title>
+    <title>🐺 SKY APEX V5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
         .tab-btn.active { color: #00ff66; border-bottom: 2px solid #00ff66; font-weight: bold; }
         input, select, textarea { background-color: #111; border: 1px solid #333; color: #fff; }
         input:focus, select:focus, textarea:focus { border-color: #00ff66; outline: none; }
-        /* Hide scrollbar for clean aesthetic */
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="max-w-md mx-auto min-h-screen flex flex-col px-4 pb-12">
 
-    <header class="py-4">
-        <h1 class="text-2xl font-black tracking-tighter text-white">🐺 SKY APEX</h1>
-        <p class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Autonomous PWA // Local Storage Active</p>
-        <div class="h-[1px] bg-neutral-800 my-2"></div>
+    <header class="py-4 flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-black tracking-tighter text-white">🐺 SKY APEX</h1>
+            <p class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Two-Way Cloud Sync Engaged</p>
+        </div>
+        <button onclick="fetchSheetHistory()" class="text-[10px] bg-neutral-900 border border-neutral-700 px-2 py-1 rounded hover:bg-neutral-800 text-neutral-400">🔄 SYNC</button>
     </header>
 
     <nav class="flex border-b border-neutral-800 mb-4 text-xs">
@@ -34,12 +34,11 @@
 
     <main class="flex-1 overflow-y-auto">
         
-        <!-- DAWN TAB -->
         <section id="tab-morning" class="space-y-4">
             <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-4">
                 <div class="space-y-2">
                     <label class="block text-xs font-bold text-emerald-400">Anchor Weight (KG)</label>
-                    <input type="number" id="m-weight" placeholder="e.g. 83.60" class="w-full p-2 rounded text-lg font-bold">
+                    <input type="number" step="0.01" id="m-weight" placeholder="00.00" class="w-full p-2 rounded text-lg font-bold">
                 </div>
                 <div class="space-y-1">
                     <label class="block text-xs font-bold text-emerald-400 mb-2">Respiratory & Core Protocol</label>
@@ -49,52 +48,59 @@
                     <label class="flex items-center gap-2 p-2 bg-black rounded border border-neutral-800"><input type="checkbox" id="m-bird" class="accent-emerald-500 w-4 h-4"><span class="text-xs">5x5s Rev Bird Dog</span></label>
                     <label class="flex items-center gap-2 p-2 bg-black rounded border border-neutral-800"><input type="checkbox" id="m-bug" class="accent-emerald-500 w-4 h-4"><span class="text-xs">20s Dead Bug Hold</span></label>
                 </div>
-                <button onclick="saveMorning()" class="w-full bg-emerald-700 text-black font-black py-3 rounded text-sm uppercase tracking-wider">Lock Baseline</button>
+                <button onclick="saveMorning()" class="w-full bg-emerald-700 text-black font-black py-3 rounded text-sm uppercase tracking-wider">Transmit Baseline</button>
             </div>
-            <div id="morning-feed" class="space-y-2"></div>
         </section>
 
-        <!-- EXERCISE TAB -->
         <section id="tab-exercise" class="hidden space-y-4">
+            <div id="overload-panel" class="bg-emerald-950/30 border border-emerald-500/30 p-3 rounded text-xs hidden">
+                <span class="text-emerald-400 font-bold block mb-1">🎯 PROGRESSIVE OVERLOAD TARGET:</span>
+                <p id="target-output" class="text-white font-mono font-bold text-sm">Searching records...</p>
+            </div>
+
             <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
                 <div>
-                    <label class="block text-xs text-emerald-400 font-bold mb-1">Target Movement</label>
-                    <input type="text" id="e-name" placeholder="e.g. 100m Sprint / Floor Press" class="w-full p-2 rounded text-sm">
+                    <label class="block text-xs text-emerald-400 font-bold mb-1">Movement Focus</label>
+                    <input type="text" id="e-name" oninput="checkOverloadTarget(this.value)" placeholder="Type exercise name..." class="w-full p-2 rounded text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs text-emerald-400 font-bold mb-1">Execution Metrics</label>
-                    <input type="text" id="e-metrics" placeholder="e.g. 12.4s / 40kg x 8" class="w-full p-2 rounded text-sm font-mono">
+                    <label class="block text-xs text-emerald-400 font-bold mb-1">Today's Performance Metric</label>
+                    <input type="text" id="e-metrics" placeholder="e.g. 42.5kg x 8, 8, 8" class="w-full p-2 rounded text-sm font-mono">
                 </div>
-                <button onclick="saveExercise()" class="w-full bg-emerald-700 text-black font-black py-3 rounded text-sm uppercase tracking-wider">Log Output</button>
+                <button onclick="saveExercise()" class="w-full bg-emerald-700 text-black font-black py-3 rounded text-sm uppercase tracking-wider">Lock Output Matrix</button>
             </div>
-            <div id="exercise-feed" class="space-y-2"></div>
         </section>
 
-        <!-- NUTRITION TAB -->
         <section id="tab-nutrition" class="hidden space-y-4">
+            <div class="grid grid-cols-4 gap-2 bg-neutral-900 p-3 rounded border border-neutral-800 text-center">
+                <div class="bg-black p-2 rounded border border-neutral-800"><p class="text-[10px] text-neutral-400">PRO</p><p id="dash-p" class="text-sm font-bold text-emerald-400">0g</p></div>
+                <div class="bg-black p-2 rounded border border-neutral-800"><p class="text-[10px] text-neutral-400">CARB</p><p id="dash-c" class="text-sm font-bold text-amber-500">0g</p></div>
+                <div class="bg-black p-2 rounded border border-neutral-800"><p class="text-[10px] text-neutral-400">FAT</p><p id="dash-f" class="text-sm font-bold text-red-400">0g</p></div>
+                <div class="bg-black p-2 rounded border border-neutral-800"><p class="text-[10px] text-neutral-400">FIBER</p><p id="dash-fi" class="text-sm font-bold text-blue-400">0g</p></div>
+            </div>
+
             <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
                 <div>
-                    <label class="block text-xs text-emerald-400 font-bold mb-1">Visual Verification</label>
-                    <input type="file" accept="image/*" capture="environment" id="n-pic" class="w-full text-xs p-2 bg-black border border-neutral-800 rounded">
+                    <label class="block text-xs text-emerald-400 font-bold mb-1">Meal / Intake Items</label>
+                    <input type="text" id="n-desc" placeholder="e.g. Whey, Eggs, Chicken Breast" class="w-full p-2 rounded text-sm">
                 </div>
-                <div>
-                    <label class="block text-xs text-emerald-400 font-bold mb-1">Macro Payload</label>
-                    <textarea id="n-desc" rows="3" placeholder="e.g. 250g Chicken, Zero Carbs" class="w-full p-2 rounded text-sm resize-none"></textarea>
+                <div class="grid grid-cols-4 gap-2">
+                    <div><label class="block text-[10px] text-neutral-400 mb-1">Protein</label><input type="number" id="n-p" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
+                    <div><label class="block text-[10px] text-neutral-400 mb-1">Carbs</label><input type="number" id="n-c" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
+                    <div><label class="block text-[10px] text-neutral-400 mb-1">Fats</label><input type="number" id="n-f" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
+                    <div><label class="block text-[10px] text-neutral-400 mb-1">Fiber</label><input type="number" id="n-fi" value="0" class="w-full p-1.5 rounded text-xs text-center font-mono"></div>
                 </div>
-                <button onclick="saveNutrition()" class="w-full bg-emerald-700 text-black font-black py-3 rounded text-sm uppercase tracking-wider">Inject Fuel Data</button>
+                <button onclick="saveNutrition()" class="w-full bg-emerald-700 text-black font-black py-3 rounded text-sm uppercase tracking-wider">Log Macro Stream</button>
             </div>
-            <div id="nutrition-feed" class="space-y-2"></div>
         </section>
     </main>
 
     <script>
-        // Database Initialization via LocalStorage
-        let db = JSON.parse(localStorage.getItem('skyApexDB')) || { morning: [], exercise: [], nutrition: [] };
+        // CORE CONFIGURATION LINK TO GOOGLE SHEETS API
+        const SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbzZFDVjxNTZ6SOPx7Y2hpIw9xAxQN2uaIgkTTtXrEIPfMfgozWtl5GF5giweWE96ZyMCQ/exec";
 
-        function updateStorage() {
-            localStorage.setItem('skyApexDB', JSON.stringify(db));
-            renderAll();
-        }
+        let exerciseHistory = [];
+        let dailyMacros = { protein: 0, carbs: 0, fats: 0, fiber: 0 };
 
         function switchTab(tab) {
             ['morning', 'exercise', 'nutrition'].forEach(t => {
@@ -105,42 +111,122 @@
             document.getElementById('btn-' + tab).classList.add('active');
         }
 
+        // Pull previous metrics history from Google Sheets
+        async function fetchSheetHistory() {
+            try {
+                let response = await fetch(SHEETS_API_URL);
+                exerciseHistory = await response.json();
+                console.log("Database history pulled successfully.", exerciseHistory);
+            } catch (err) {
+                console.error("History sync blackout.", err);
+            }
+        }
+
+        // Real-time lookup for progressive overload matching
+        function checkOverloadTarget(inputName) {
+            const panel = document.getElementById('overload-panel');
+            const output = document.getElementById('target-output');
+            if(!inputName.trim()) { panel.classList.add('hidden'); return; }
+
+            // Find the most recent matching record in database array
+            let match = exerciseHistory.find(item => item.name.toLowerCase().trim() === inputName.toLowerCase().trim());
+            
+            panel.classList.remove('hidden');
+            if(match) {
+                output.innerText = `LAST SESSION: ${match.metrics}`;
+                output.className = "text-emerald-400 font-mono font-bold text-sm animate-pulse";
+            } else {
+                output.innerText = "NO PREVIOUS MATRIX DATA FOUND. BASELINE SESSION.";
+                output.className = "text-neutral-500 font-mono text-xs";
+            }
+        }
+
+        async function transmitToCloud(payload) {
+            try {
+                await fetch(SHEETS_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                alert("🔱 Metrics successfully written into Cloud Registry.");
+                fetchSheetHistory(); // Refresh background target pool
+            } catch(e) {
+                alert("Data loss averted. Link interrupted.");
+            }
+        }
+
         function saveMorning() {
             const w = document.getElementById('m-weight').value;
-            if(!w) return alert("Weight is mandatory.");
-            db.morning.unshift({
+            if(!w) return alert("Weight verification required.");
+            transmitToCloud({
+                type: "morning",
                 date: new Date().toLocaleDateString(),
                 weight: w,
-                drills: document.getElementById('m-croc').checked && document.getElementById('m-struct').checked ? 'Completed' : 'Incomplete'
+                croc: document.getElementById('m-croc').checked ? "YES":"NO",
+                struct: document.getElementById('m-struct').checked ? "YES":"NO",
+                rib: document.getElementById('m-rib').checked ? "YES":"NO",
+                bird: document.getElementById('m-bird').checked ? "YES":"NO",
+                bug: document.getElementById('m-bug').checked ? "YES":"NO",
+                hold: document.getElementById('m-hold').checked ? "YES":"NO"
             });
-            updateStorage();
-            document.getElementById('m-weight').value = '';
         }
 
         function saveExercise() {
             const n = document.getElementById('e-name').value;
             const m = document.getElementById('e-metrics').value;
-            if(!n || !m) return alert("All fields required.");
-            db.exercise.unshift({ date: new Date().toLocaleDateString(), name: n, metrics: m });
-            updateStorage();
-            document.getElementById('e-name').value = ''; document.getElementById('e-metrics').value = '';
+            if(!n || !m) return alert("Inputs missing.");
+            transmitToCloud({
+                type: "exercise",
+                timestamp: new Date().toLocaleString(),
+                name: n,
+                metrics: m,
+                notes: "PWA Uplink Entry"
+            });
+            document.getElementById('e-name').value = '';
+            document.getElementById('e-metrics').value = '';
+            document.getElementById('overload-panel').classList.add('hidden');
         }
 
         function saveNutrition() {
-            const d = document.getElementById('n-desc').value;
-            if(!d) return alert("Macro payload description required.");
-            db.nutrition.unshift({ time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), desc: d });
-            updateStorage();
+            const desc = document.getElementById('n-desc').value;
+            const p = parseInt(document.getElementById('n-p').value) || 0;
+            const c = parseInt(document.getElementById('n-c').value) || 0;
+            const f = parseInt(document.getElementById('n-f').value) || 0;
+            const fi = parseInt(document.getElementById('n-fi').value) || 0;
+
+            if(!desc) return alert("Item description required.");
+
+            // Update local daily total dashboard
+            dailyMacros.protein += p;
+            dailyMacros.carbs += c;
+            dailyMacros.fats += f;
+            dailyMacros.fiber += fi;
+
+            document.getElementById('dash-p').innerText = dailyMacros.protein + 'g';
+            document.getElementById('dash-c').innerText = dailyMacros.carbs + 'g';
+            document.getElementById('dash-f').innerText = dailyMacros.fats + 'g';
+            document.getElementById('dash-fi').innerText = dailyMacros.fiber + 'g';
+
+            transmitToCloud({
+                type: "nutrition",
+                timestamp: new Date().toLocaleString(),
+                desc: desc,
+                protein: p,
+                carbs: c,
+                fats: f,
+                fiber: fi
+            });
+
             document.getElementById('n-desc').value = '';
+            document.getElementById('n-p').value = 0;
+            document.getElementById('n-c').value = 0;
+            document.getElementById('n-f').value = 0;
+            document.getElementById('n-fi').value = 0;
         }
 
-        function renderAll() {
-            document.getElementById('morning-feed').innerHTML = db.morning.map(i => `<div class="p-2 border border-neutral-800 rounded text-xs flex justify-between"><span class="text-neutral-400">${i.date}</span><span class="text-emerald-400 font-bold">${i.weight} KG [${i.drills}]</span></div>`).join('');
-            document.getElementById('exercise-feed').innerHTML = db.exercise.map(i => `<div class="p-2 border border-neutral-800 rounded text-xs flex flex-col"><span class="text-emerald-500 font-bold">${i.name}</span><span class="text-neutral-300 font-mono">${i.metrics}</span></div>`).join('');
-            document.getElementById('nutrition-feed').innerHTML = db.nutrition.map(i => `<div class="p-2 border border-neutral-800 rounded text-xs"><span class="text-emerald-500 font-bold mr-2">[${i.time}]</span><span class="text-white">${i.desc}</span></div>`).join('');
-        }
-
-        renderAll();
+        // Hydrate background system memory immediately on load
+        fetchSheetHistory();
     </script>
 </body>
 </html>
