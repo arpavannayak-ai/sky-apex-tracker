@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>🐺 SKY APEX V14</title>
+    <title>🐺 SKY APEX V14.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
@@ -133,12 +133,11 @@
                     return;
                 }
                 
-                let numSets = parseInt(lift.sets); if(isNaN(numSets) || numSets < 1) numSets = 1;
                 let pastMatch = cloudData.history.find(h => h.name.toLowerCase() === lift.name.toLowerCase());
                 let pastText = pastMatch ? `LAST: ${pastMatch.metrics}` : "NO HISTORY";
 
-                let rowsHTML = '';
-                for(let s = 0; s < numSets; s++) { rowsHTML += generateSetRow(exIndex, s, lift.name); }
+                // Generate ONLY exactly 1 row by default
+                let rowsHTML = generateSetRow(exIndex, 0, lift.name);
 
                 container.innerHTML += `
                 <div class="bg-neutral-900 p-3 rounded border border-neutral-800 mb-2">
@@ -150,6 +149,7 @@
                         </div>
                     </div>
                     <div class="text-[10px] text-neutral-400 mb-3 flex flex-wrap gap-2 items-center">
+                        <span class="font-mono bg-black border border-neutral-800 px-1.5 py-0.5 rounded">${lift.sets} SETS</span>
                         <span class="font-mono bg-black border border-neutral-800 px-1.5 py-0.5 rounded">${lift.reps} REPS</span>
                         ${lift.instr ? `<span class="italic text-emerald-500/70">"${lift.instr}"</span>` : ''}
                     </div>
