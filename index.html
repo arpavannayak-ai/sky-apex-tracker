@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- PWA Meta Tags for Native App Illusion -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>🐺 SKY APEX</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
+        .tab-btn.active { color: #00ff66; border-bottom: 2px solid #00ff66; font-weight: bold; }
+        input, select, textarea { background-color: #111; border: 1px solid #333; color: #fff; }
+        input:focus, select:focus, textarea:focus { border-color: #00ff66; outline: none; }
+        /* Hide scrollbar for clean aesthetic */
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="max-w-md mx-auto min-h-screen flex flex-col px-4 pb-12">
+
+    <header class="py-4">
+        <h1 class="text-2xl font-black tracking-tighter text-white">🐺 SKY APEX</h1>
+        <p class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Autonomous PWA // Local Storage Active</p>
+        <div class="h-[1px] bg-neutral-800 my-2"></div>
+    </header>
+
+    <nav class="flex border-b border-neutral-800 mb-4 text-xs">
+        <button onclick="switchTab('morning')" id="btn-morning" class="tab-btn active flex-1 py-2 text-center">🌅 DAWN</button>
+        <button onclick="switchTab('exercise')" id="btn-exercise" class="tab-btn flex-1 py-2 text-center">🏋️‍♂️ LIFT</button>
+        <button onclick="switchTab('nutrition')" id="btn-nutrition" class="tab-btn flex-1 py-2 text-center">🍗 FUEL</button>
+    </nav>
+
+    <main class="flex-1 overflow-y-auto">
+        
+        <!-- DAWN TAB -->
+        <section id="tab-morning" class="space-y-4">
+            <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-4">
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-emerald-400">Anchor Weight (KG)</label>
+                    <input type="number" id="m-weight" placeholder="e.g. 83.60" class="w-full p-2 rounded text-lg font-bold">
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-xs font-bold text-emerald-400 mb-2">Respiratory & Core Protocol</label>
+                    <label class="flex items-center gap-2 p-2 bg-black rounded border border-neutral-800"><input type="checkbox" id="m-croc" class="accent-emerald-500 w-4 h-4"><span class="text-xs">3m Crocodile Breath</span></label>
+                    <label class="flex items-center gap-2 p-2 bg-black rounded border border-neutral-800"><input type="checkbox" id="m-struct" class="accent-emerald-500 w-4 h-4"><span class="text-xs">15x 90/90 Struct Breath</span></label>
+                    <label class="flex items-center gap-2 p-2 bg-black rounded border border-neutral-800"><input type="checkbox" id="m-rib" class="accent-emerald-500 w-4 h-4"><span class="text-xs">10x Lateral Rib Exp</span></label>
+                    <label class="flex items-center gap-2 p-2 bg-black rounded border border-neutral-800"><input type="checkbox" id="m-bird" class="accent-emerald-500 w-4 h-4"><span class="text-xs">5x5s Rev Bird Dog</span></label>
+                    <label class="flex items-center gap-2 p-2 bg-black rounded border border-neutral-800"><input type="checkbox" id="m-bug" class="accent-emerald-500 w-4 h-4"><span class="text-xs">20s Dead Bug Hold</span></label>
+                </div>
+                <button onclick="saveMorning()" class="w-full bg-emerald-700 text-black font-black py-3 rounded text-sm uppercase tracking-wider">Lock Baseline</button>
+            </div>
+            <div id="morning-feed" class="space-y-2"></div>
+        </section>
+
+        <!-- EXERCISE TAB -->
+        <section id="tab-exercise" class="hidden space-y-4">
+            <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
+                <div>
+                    <label class="block text-xs text-emerald-400 font-bold mb-1">Target Movement</label>
+                    <input type="text" id="e-name" placeholder="e.g. 100m Sprint / Floor Press" class="w-full p-2 rounded text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-emerald-400 font-bold mb-1">Execution Metrics</label>
+                    <input type="text" id="e-metrics" placeholder="e.g. 12.4s / 40kg x 8" class="w-full p-2 rounded text-sm font-mono">
+                </div>
+                <button onclick="saveExercise()" class="w-full bg-emerald-700 text-black font-black py-3 rounded text-sm uppercase tracking-wider">Log Output</button>
+            </div>
+            <div id="exercise-feed" class="space-y-2"></div>
+        </section>
+
+        <!-- NUTRITION TAB -->
+        <section id="tab-nutrition" class="hidden space-y-4">
+            <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
+                <div>
+                    <label class="block text-xs text-emerald-400 font-bold mb-1">Visual Verification</label>
+                    <input type="file" accept="image/*" capture="environment" id="n-pic" class="w-full text-xs p-2 bg-black border border-neutral-800 rounded">
+                </div>
+                <div>
+                    <label class="block text-xs text-emerald-400 font-bold mb-1">Macro Payload</label>
+                    <textarea id="n-desc" rows="3" placeholder="e.g. 250g Chicken, Zero Carbs" class="w-full p-2 rounded text-sm resize-none"></textarea>
+                </div>
+                <button onclick="saveNutrition()" class="w-full bg-emerald-700 text-black font-black py-3 rounded text-sm uppercase tracking-wider">Inject Fuel Data</button>
+            </div>
+            <div id="nutrition-feed" class="space-y-2"></div>
+        </section>
+    </main>
+
+    <script>
+        // Database Initialization via LocalStorage
+        let db = JSON.parse(localStorage.getItem('skyApexDB')) || { morning: [], exercise: [], nutrition: [] };
+
+        function updateStorage() {
+            localStorage.setItem('skyApexDB', JSON.stringify(db));
+            renderAll();
+        }
+
+        function switchTab(tab) {
+            ['morning', 'exercise', 'nutrition'].forEach(t => {
+                document.getElementById('tab-' + t).classList.add('hidden');
+                document.getElementById('btn-' + t).classList.remove('active');
+            });
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            document.getElementById('btn-' + tab).classList.add('active');
+        }
+
+        function saveMorning() {
+            const w = document.getElementById('m-weight').value;
+            if(!w) return alert("Weight is mandatory.");
+            db.morning.unshift({
+                date: new Date().toLocaleDateString(),
+                weight: w,
+                drills: document.getElementById('m-croc').checked && document.getElementById('m-struct').checked ? 'Completed' : 'Incomplete'
+            });
+            updateStorage();
+            document.getElementById('m-weight').value = '';
+        }
+
+        function saveExercise() {
+            const n = document.getElementById('e-name').value;
+            const m = document.getElementById('e-metrics').value;
+            if(!n || !m) return alert("All fields required.");
+            db.exercise.unshift({ date: new Date().toLocaleDateString(), name: n, metrics: m });
+            updateStorage();
+            document.getElementById('e-name').value = ''; document.getElementById('e-metrics').value = '';
+        }
+
+        function saveNutrition() {
+            const d = document.getElementById('n-desc').value;
+            if(!d) return alert("Macro payload description required.");
+            db.nutrition.unshift({ time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), desc: d });
+            updateStorage();
+            document.getElementById('n-desc').value = '';
+        }
+
+        function renderAll() {
+            document.getElementById('morning-feed').innerHTML = db.morning.map(i => `<div class="p-2 border border-neutral-800 rounded text-xs flex justify-between"><span class="text-neutral-400">${i.date}</span><span class="text-emerald-400 font-bold">${i.weight} KG [${i.drills}]</span></div>`).join('');
+            document.getElementById('exercise-feed').innerHTML = db.exercise.map(i => `<div class="p-2 border border-neutral-800 rounded text-xs flex flex-col"><span class="text-emerald-500 font-bold">${i.name}</span><span class="text-neutral-300 font-mono">${i.metrics}</span></div>`).join('');
+            document.getElementById('nutrition-feed').innerHTML = db.nutrition.map(i => `<div class="p-2 border border-neutral-800 rounded text-xs"><span class="text-emerald-500 font-bold mr-2">[${i.time}]</span><span class="text-white">${i.desc}</span></div>`).join('');
+        }
+
+        renderAll();
+    </script>
+</body>
+</html>
