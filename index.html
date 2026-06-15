@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>SKY APEX MASTER COMMAND V23</title>
+    <title>SKY APEX MASTER COMMAND V24</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
@@ -12,7 +12,6 @@
         .day-btn.active { background-color: #00ff66; color: #000; font-weight: bold; border-color: #00ff66; }
         input, select, textarea { background-color: #111; border: 1px solid #333; color: #fff; }
         input:focus, select:focus, textarea:focus { border-color: #00ff66; outline: none; }
-        input:disabled { background-color: #0c1912; border-color: #042f1a; color: #00ff66; font-weight: bold; opacity: 1; cursor: not-allowed; }
         ::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; }
         ::-webkit-scrollbar { display: none; }
         
@@ -68,17 +67,29 @@
         </section>
 
         <section id="tab-exercise" class="hidden space-y-4">
-            <div id="workout-container" class="space-y-3"></div>
-            
-            <div class="bg-neutral-950 p-4 rounded border border-neutral-800 border-dashed space-y-2 mt-6">
-                <p class="text-[10px] text-neutral-500 uppercase">Off-Program Manual Entry</p>
-                <input type="text" id="manual-name" placeholder="Exercise Name" class="w-full p-2 rounded text-xs">
-                <div class="flex gap-2">
-                    <input type="text" id="manual-weight" placeholder="Wgt" class="flex-1 p-2 rounded text-xs text-center font-mono">
-                    <input type="text" id="manual-reps" placeholder="Reps/Time" class="flex-1 p-2 rounded text-xs text-center font-mono">
-                    <input type="number" step="0.5" id="manual-rpe" placeholder="RPE" class="flex-1 p-2 rounded text-xs text-center font-mono">
+            <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
+                <h3 class="text-xs font-bold text-emerald-400 tracking-widest uppercase">Execute Log Entry</h3>
+                <div class="space-y-2">
+                    <select id="lift-name-select" class="w-full p-2.5 rounded text-xs font-bold uppercase tracking-wider bg-black text-white border border-neutral-800">
+                        <option value="">-- SELECT EXERCISE --</option>
+                    </select>
+                    <div class="flex gap-1">
+                        <input type="text" id="lift-weight" placeholder="Weight/BW" class="flex-1 p-2 rounded text-xs text-center font-mono bg-black text-white">
+                        <input type="text" id="lift-reps" placeholder="Reps/Time" class="flex-1 p-2 rounded text-xs text-center font-mono bg-black text-white">
+                        <input type="number" step="0.5" id="lift-rpe" placeholder="RPE" class="flex-1 p-2 rounded text-xs text-center font-mono bg-black text-white">
+                    </div>
                 </div>
-                <button onclick="saveManualExercise()" class="w-full bg-neutral-800 text-white font-bold py-2 rounded text-xs uppercase">Log Manual</button>
+                <button onclick="commitLiftFromConsole()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-black font-black py-3 rounded text-xs uppercase tracking-widest transition">+ LOCK SET</button>
+            </div>
+
+            <div class="space-y-2">
+                <h4 class="text-[10px] font-bold text-neutral-500 uppercase border-b border-neutral-800 pb-1">Performance Feed (Today's Actions)</h4>
+                <div id="exercise-history-feed" class="space-y-1.5"></div>
+            </div>
+
+            <div class="space-y-2 pt-2">
+                <h4 class="text-[10px] font-bold text-neutral-500 uppercase border-b border-neutral-800 pb-1">Program Blueprint (Targets)</h4>
+                <div id="workout-blueprint-container" class="space-y-2"></div>
             </div>
         </section>
 
@@ -122,7 +133,6 @@
             <div class="p-4 bg-emerald-950/20 border border-emerald-500/30 rounded text-center space-y-3">
                 <button onclick="copyDataForWolf()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-black font-bold py-3 rounded text-xs uppercase tracking-widest transition">Copy Daily Dump</button>
                 <div class="border-t border-emerald-900 pt-3">
-                    <textarea id="ai-paste" rows="4" placeholder="Paste feedback here..." class="w-full p-2 rounded text-xs mb-2 resize-none font-mono bg-black text-white border border-neutral-800"></textarea>
                     <textarea id="ai-paste" rows="4" placeholder="Paste feedback here..." class="w-full p-2 rounded text-xs mb-2 resize-none font-mono bg-black text-white border border-neutral-800"></textarea>
                     <button onclick="saveAIAssessment()" class="w-full bg-emerald-900/50 hover:bg-emerald-900 text-emerald-400 font-bold py-2 rounded text-[10px] uppercase border border-emerald-700">Lock Assessment to Database</button>
                 </div>
@@ -207,7 +217,13 @@
             else cloudData.daily.push(record);
         }
 
-        // ---- DAILY TAB ----
+        function renderAllData() {
+            renderDailyMetrics();
+            renderWorkoutProgram();
+            renderNutritionFeed();
+        }
+
+        // ---- DAILY METRICS ----
         function renderDailyMetrics() {
             let dayRecord = getLocalOrCloudRecord(activeDateIso);
             let wInput = document.getElementById('daily-weight');
@@ -260,7 +276,6 @@
         function lockDailyProtocol() {
             let record = getLocalOrCloudRecord(activeDateIso);
             let updatePayload = { type: "daily_update", date: activeDateIso };
-
             document.querySelectorAll('#protocol-container .task-btn').forEach(btn => {
                 let field = btn.getAttribute('data-field');
                 if(btn.classList.contains('selected')) {
@@ -269,7 +284,6 @@
                     record[field] = "SKIPPED"; updatePayload[field] = "SKIPPED";
                 }
             });
-
             saveLocalRecord(record);
             renderDailyMetrics();
             transmit(updatePayload);
@@ -283,21 +297,192 @@
             transmit({ type: "daily_update", date: activeDateIso, water: record.water });
         }
 
-        // ---- EXERCISE TAB: PERSISTENT INLINE MUTATION CORE ----
+        // ---- EXERCISE TAB: PURE LEDGER DRIVEN MECHANICS ----
         function renderWorkoutProgram() {
-            const container = document.getElementById('workout-container'); container.innerHTML = '';
+            const blueprintContainer = document.getElementById('workout-blueprint-container');
+            const selectDropdown = document.getElementById('lift-name-select');
+            const historyFeed = document.getElementById('exercise-history-feed');
+            
+            blueprintContainer.innerHTML = '';
+            historyFeed.innerHTML = '';
+            
+            // 1. Keep dropdown select items sticky
+            let currentSelectedValue = selectDropdown.value;
+            selectDropdown.innerHTML = '<option value="">-- SELECT EXERCISE --</option>';
+
             let todaysLifts = cloudData.program ? cloudData.program.filter(p => p.date === activeDateIso) : [];
-            if(todaysLifts.length === 0) return container.innerHTML = `<p class="text-xs text-neutral-500 text-center italic mt-4">Rest Day or Unprogrammed.</p>`;
+            
+            if(todaysLifts.length === 0) {
+                blueprintContainer.innerHTML = `<p class="text-xs text-neutral-500 text-center italic mt-4">Blueprint empty or Rest Day.</p>`;
+                historyFeed.innerHTML = `<p class="text-[10px] text-neutral-600 italic">No historical actions logged.</p>`;
+                return;
+            }
 
-            todaysLifts.forEach((lift, exIndex) => {
-                let pastMatch = cloudData.history ? cloudData.history.find(h => h.name.toLowerCase() === lift.name.toLowerCase()) : null;
-                let pastText = pastMatch ? `LAST: ${pastMatch.metrics}` : "NO HISTORY";
-
-                // Count how many sets are physically locked into device storage for this specific movement
-                let localSetCount = 0;
-                let rowsHTML = '';
+            // 2. Build Immutable Blueprint Cards
+            todaysLifts.forEach(lift => {
+                selectDropdown.innerHTML += `<option value="${lift.name}">${lift.name}</option>`;
                 
-                while (localStorage.getItem(`lift_lock_${activeDateIso}_${lift.name}_${localSetCount}`)) {
-                    let cachedData = JSON.parse(localStorage.getItem(`lift_lock_${activeDateIso}_${lift.name}_${localSetCount}`));
-                    rowsHTML += generateLockedSetRow(exIndex, localSetCount, cachedData.w, cachedData.r, cachedData.rpe);
-                    localSetCount++;
+                blueprintContainer.innerHTML += `
+                <div class="bg-neutral-950 p-2.5 rounded border border-neutral-900 flex justify-between items-center text-xs">
+                    <div class="w-2/3">
+                        <p class="font-bold text-neutral-300 uppercase leading-tight">${lift.name}</p>
+                        <p class="text-[10px] text-emerald-400 font-mono mt-0.5">🎯 ${lift.weight}</p>
+                    </div>
+                    ${lift.sets ? `<span class="text-[9px] bg-neutral-900 border border-neutral-800 px-2 py-0.5 rounded text-neutral-400 font-mono">⏱️ ${lift.sets}</span>` : ''}
+                </div>`;
+            });
+            
+            selectDropdown.value = currentSelectedValue;
+
+            // 3. Render Today's Actions into the History Feed (Mirroring Nutrition Tab)
+            // Filtering history array logs that happen today
+            let todayLocalStr = new Date(activeDateIso.replace(/-/g, '\/')).toLocaleDateString('en-US');
+            let todayActions = cloudData.history ? cloudData.history.filter(h => new Date(h.timestamp).toLocaleDateString('en-US') === todayLocalStr) : [];
+            
+            if(todayActions.length === 0) {
+                historyFeed.innerHTML = `<p class="text-[10px] text-neutral-600 italic pl-1">Awaiting target executions...</p>`;
+                return;
+            }
+
+            todayActions.forEach(action => {
+                let timeStr = new Date(action.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                historyFeed.innerHTML += `
+                <div class="bg-neutral-900 p-2 rounded border border-neutral-800 text-xs flex justify-between items-center">
+                    <div>
+                        <span class="text-white font-bold uppercase block text-[11px]">${action.name}</span>
+                        <span class="text-emerald-400 font-mono text-[10px]">${action.metrics}</span>
+                    </div>
+                    <span class="text-neutral-500 font-mono text-[9px]">${timeStr}</span>
+                </div>`;
+            });
+        }
+
+        function commitLiftFromConsole() {
+            const name = document.getElementById('lift-name-select').value;
+            const w = document.getElementById('lift-weight').value;
+            const r = document.getElementById('lift-reps').value;
+            const rpe = document.getElementById('lift-rpe').value;
+            
+            if(!name || !w || !r) return alert("Select exercise, input weight and reps.");
+            
+            let metricsStr = `${w} x ${r}`;
+            if(rpe) metricsStr += ` @ RPE ${rpe}`;
+            
+            let now = new Date();
+            let timestampStr = now.toLocaleString();
+
+            // Optimistic UI Append to immediately prevent screen flash amnesia
+            if(!cloudData.history) cloudData.history = [];
+            cloudData.history.push({ timestamp: now.toISOString(), name: name, metrics: metricsStr });
+            
+            transmit({ type: "exercise", timestamp: timestampStr, name: name, metrics: metricsStr, notes: "Console Logged" });
+            
+            // Reset input console states
+            document.getElementById('lift-weight').value = '';
+            document.getElementById('lift-reps').value = '';
+            document.getElementById('lift-rpe').value = '';
+            
+            renderWorkoutProgram();
+            setTimeout(fetchCloudData, 1000);
+        }
+
+        function saveManualExercise() {
+            const n = document.getElementById('manual-name').value; const w = document.getElementById('manual-weight').value; const r = document.getElementById('manual-reps').value; const rpe = document.getElementById('manual-rpe').value;
+            if(!n || !w || !r) return alert("Required data missing.");
+            let m = `${w} x ${r}`; if(rpe) m += ` @ RPE ${rpe}`;
+            transmit({ type: "exercise", timestamp: new Date().toLocaleString(), name: n, metrics: m, notes: "Manual" });
+            alert("Manual log transmitted."); ['manual-name','manual-weight','manual-reps','manual-rpe'].forEach(id => document.getElementById(id).value = '');
+            setTimeout(fetchCloudData, 1000);
+        }
+
+        // ---- FUEL PANEL ----
+        function renderNutritionFeed() {
+            const container = document.getElementById('nutrition-container'); container.innerHTML = '';
+            let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => n.date === activeDateIso) : [];
+            if(tMeals.length === 0) return container.innerHTML = `<p class="text-[10px] text-neutral-500 italic">No fuel logged.</p>`;
+            
+            tMeals.forEach((meal, idx) => {
+                let tStr = new Date(meal.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                container.innerHTML += `
+                <div class="bg-neutral-900 p-2 rounded border border-neutral-800 text-xs space-y-2">
+                    <div class="flex justify-between items-start">
+                        <input type="text" id="edit-nut-desc-${idx}" value="${meal.desc}" class="bg-black text-white text-xs p-1 rounded border border-neutral-800 w-3/4 font-mono">
+                        <span class="text-neutral-500 font-mono text-[10px] pt-1">${tStr}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-neutral-500 text-[9px] font-mono">${meal.pro || 0}P / ${meal.carb || 0}C / ${meal.fat || 0}F</span>
+                        <button onclick="updateNutritionRow(${idx}, '${meal.timestamp}')" class="text-[9px] font-bold text-amber-400 bg-amber-950/20 px-2 py-0.5 rounded border border-amber-900/50 uppercase">Update</button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        function updateNutritionRow(idx, originalTimestamp) {
+            const updatedDesc = document.getElementById(`edit-nut-desc-${idx}`).value;
+            if(!updatedDesc) return;
+            transmit({ type: "nutrition", timestamp: originalTimestamp, desc: updatedDesc + " (MUTATED)", protein: 0, carbs: 0, fats: 0, fiber: 0 });
+            alert("Mutation queued."); setTimeout(fetchCloudData, 1000);
+        }
+
+        function saveNutrition() {
+            const desc = document.getElementById('n-desc').value; const timeVal = document.getElementById('n-time').value;
+            if(!desc) return alert("Meal description required.");
+            let mealDate = new Date(activeDateIso.replace(/-/g, '\/')); if(timeVal) { let [h, m] = timeVal.split(':'); mealDate.setHours(h, m, 0, 0); }
+            transmit({ type: "nutrition", timestamp: mealDate.toLocaleString(), desc: desc, protein: 0, carbs: 0, fats: 0, fiber: 0 });
+            document.getElementById('n-desc').value = ''; setCurrentTime();
+            setTimeout(fetchCloudData, 1000);
+        }
+
+        async function transmit(payload) {
+            try { await fetch(SHEETS_API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch(e) {}
+        }
+
+        function computeSummary() {
+            document.getElementById('sum-workouts').innerText = cloudData.history ? cloudData.history.length : 0;
+            if(cloudData.nutrition && cloudData.nutrition.length > 0) { let pro = cloudData.nutrition.reduce((s, i) => s + (Number(i.pro) || 0), 0); document.getElementById('sum-protein').innerText = Math.round(pro / 7); }
+        }
+
+        function copyDataForWolf() {
+            let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => n.date === activeDateIso) : [];
+            let tLifts = cloudData.history ? cloudData.history.filter(h => getIsoString(new Date(h.timestamp)) === activeDateIso) : [];
+            let dayRecord = getLocalOrCloudRecord(activeDateIso);
+            
+            let dump = `WOLF PROTOCOL - END OF DAY DUMP (${activeDateIso})\n\n`;
+            dump += `--- DAILY COMPLIANCE ---\n`;
+            dump += `Morning Weight: ${dayRecord && dayRecord.weight ? dayRecord.weight + ' KG' : 'Not Logged'}\n`;
+            dump += `Water Total: ${dayRecord && dayRecord.water ? dayRecord.water + ' mL' : '0 mL'}\n`;
+            
+            let completed = [];
+            if(dayRecord) {
+                if(dayRecord.croc === "LOCKED") completed.push("Croc Breath");
+                if(dayRecord.b9090 === "LOCKED") completed.push("90-90 Breathing");
+                if(dayRecord.rib === "LOCKED") completed.push("Lateral Rib Exp");
+                if(dayRecord.bug === "LOCKED") completed.push("Dead Bug");
+                if(dayRecord.bird === "LOCKED") completed.push("Bird Dog");
+                if(dayRecord.plank === "LOCKED") completed.push("Plank");
+            }
+            dump += `Tasks Locked: ${completed.length > 0 ? completed.join(', ') : 'None'}\n\n`;
+            
+            dump += "--- NUTRITION LOG ---\n";
+            if(tMeals.length === 0) dump += "NO FOOD LOGGED.\n";
+            tMeals.forEach(n => { dump += `- ${n.desc}\n`; });
+            
+            dump += "\n--- LIFT METRICS ---\n";
+            if(tLifts.length === 0) dump += "NO LIFTS LOGGED.\n";
+            tLifts.forEach(h => { dump += `- ${h.name}: ${h.metrics}\n`; });
+            
+            dump += "\nAssess metrics and crunch macros.";
+            navigator.clipboard.writeText(dump); alert("📋 Data Copied.");
+        }
+
+        function saveAIAssessment() {
+            const text = document.getElementById('ai-paste').value.trim();
+            if(!text) return alert("Paste text first.");
+            transmit({ type: "ai_log", timestamp: new Date().toLocaleString(), text: text });
+            document.getElementById('ai-paste').value = ''; alert("🔱 Locked.");
+        }
+
+        buildDateNav(); setCurrentTime(); fetchCloudData();
+    </script>
+</body>
+</html>
