@@ -194,7 +194,7 @@
 
         // ---- DAILY METRICS ----
         function renderDailyMetrics() {
-            let todaysLogs = cloudData.daily.filter(d => new Date(d.timestamp).toLocaleDateString('en-US') === activeDate);
+            let todaysLogs = cloudData.daily ? cloudData.daily.filter(d => new Date(d.timestamp).toLocaleDateString('en-US') === activeDate) : [];
             let wLog = todaysLogs.find(d => d.category === 'Weight');
             let wInput = document.getElementById('daily-weight');
             
@@ -232,6 +232,7 @@
             
             if (weight) {
                 transmit({ type: "daily_log", timestamp: timestampStr, category: "Weight", value: weight });
+                if(!cloudData.daily) cloudData.daily = [];
                 cloudData.daily.push({ timestamp: timestampStr, category: "Weight", value: weight });
             }
 
@@ -239,6 +240,7 @@
                 if(btn.classList.contains('selected')) {
                     let taskName = btn.getAttribute('data-task');
                     transmit({ type: "daily_log", timestamp: timestampStr, category: "Task", value: taskName });
+                    if(!cloudData.daily) cloudData.daily = [];
                     cloudData.daily.push({ timestamp: timestampStr, category: "Task", value: taskName });
                 }
             });
@@ -247,7 +249,7 @@
 
         // ---- WATER ----
         function renderWaterUI() {
-            let todaysLogs = cloudData.daily.filter(d => new Date(d.timestamp).toLocaleDateString('en-US') === activeDate);
+            let todaysLogs = cloudData.daily ? cloudData.daily.filter(d => new Date(d.timestamp).toLocaleDateString('en-US') === activeDate) : [];
             let waterSum = todaysLogs.filter(d => d.category === 'Water').reduce((acc, curr) => acc + Number(curr.value), 0);
             let waterPercent = Math.min((waterSum / 6000) * 100, 100);
             document.getElementById('water-bar').style.width = waterPercent + '%';
@@ -258,18 +260,19 @@
         function logWater(amount, btnObj) {
             let logDate = new Date(activeDate); logDate.setHours(new Date().getHours(), new Date().getMinutes());
             transmit({ type: "daily_log", timestamp: logDate.toLocaleString(), category: "Water", value: amount });
+            if(!cloudData.daily) cloudData.daily = [];
             cloudData.daily.push({ timestamp: logDate.toLocaleString(), category: "Water", value: amount });
             renderWaterUI();
         }
 
-        // ---- FLEXIBLE LIFT WORKOUT UI ----
+        // ---- RECALIBRATED WORKOUT GENERATOR ----
         function renderWorkoutProgram() {
             const container = document.getElementById('workout-container'); container.innerHTML = '';
-            let todaysLifts = cloudData.program.filter(p => p.date === activeDate);
+            let todaysLifts = cloudData.program ? cloudData.program.filter(p => p.date === activeDate) : [];
             if(todaysLifts.length === 0) return container.innerHTML = `<p class="text-xs text-neutral-500 text-center italic mt-4">Rest Day or Unprogrammed.</p>`;
 
             todaysLifts.forEach((lift, exIndex) => {
-                let pastMatch = cloudData.history.find(h => h.name.toLowerCase() === lift.name.toLowerCase());
+                let pastMatch = cloudData.history ? cloudData.history.find(h => h.name.toLowerCase() === lift.name.toLowerCase()) : null;
                 let pastText = pastMatch ? `LAST: ${pastMatch.metrics}` : "NO HISTORY";
                 let rowsHTML = generateSetRow(exIndex, 0, lift.name);
 
@@ -277,10 +280,10 @@
                 <div class="bg-neutral-900 p-3 rounded border border-neutral-800 mb-2">
                     <div class="flex justify-between items-start mb-1">
                         <span class="text-xs font-bold text-white uppercase w-3/4">${lift.name}</span>
-                        ${lift.sets ? `<span class="text-[9px] bg-neutral-950 text-neutral-400 px-1.5 py-0.5 rounded border border-neutral-800 font-mono whitespace-nowrap">⏱️ ${lift.sets}</span>` : ''}
+                        ${lift.rest ? `<span class="text-[9px] bg-neutral-950 text-neutral-400 px-1.5 py-0.5 rounded border border-neutral-800 font-mono whitespace-nowrap">⏱️ ${lift.rest}</span>` : ''}
                     </div>
                     <div class="text-[10px] text-emerald-400 mb-3 font-mono bg-emerald-950/30 border border-emerald-500/20 px-2 py-1.5 rounded">
-                        🎯 ${lift.weight}
+                        🎯 ${lift.target || lift.weight || 'No execution targets loaded'}
                     </div>
                     <div id="ex-sets-${exIndex}" class="space-y-1">${rowsHTML}</div>
                     <div class="flex justify-between items-center mt-2">
@@ -336,7 +339,7 @@
         // ---- NUTRITION ----
         function renderNutritionFeed() {
             const container = document.getElementById('nutrition-container'); container.innerHTML = '';
-            let tMeals = cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === activeDate);
+            let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === activeDate) : [];
             if(tMeals.length === 0) return container.innerHTML = `<p class="text-[10px] text-neutral-500 italic">No fuel logged for this date.</p>`;
             tMeals.forEach(meal => {
                 let tStr = new Date(meal.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -351,19 +354,23 @@
             let mealDate = new Date(activeDate); if(timeVal) { let [h, m] = timeVal.split(':'); mealDate.setHours(h, m, 0, 0); }
             transmit({ type: "nutrition", timestamp: mealDate.toLocaleString(), desc: desc, protein: 0, carbs: 0, fats: 0, fiber: 0 });
             document.getElementById('n-desc').value = ''; setCurrentTime(); 
+            if(!cloudData.nutrition) cloudData.nutrition = [];
             cloudData.nutrition.push({ timestamp: mealDate.toLocaleString(), desc: desc, pro: 0, carb: 0, fat: 0 }); renderNutritionFeed();
         }
 
         // ---- DATA COMMS ----
         function computeSummary() {
-            document.getElementById('sum-workouts').innerText = cloudData.history.length || 0;
-            if(cloudData.nutrition.length > 0) { let pro = cloudData.nutrition.reduce((s, i) => s + (Number(i.pro) || 0), 0); document.getElementById('sum-protein').innerText = Math.round(pro / 7); }
+            document.getElementById('sum-workouts').innerText = cloudData.history ? cloudData.history.length : 0;
+            if(cloudData.nutrition && cloudData.nutrition.length > 0) { 
+                let pro = cloudData.nutrition.reduce((s, i) => s + (Number(i.pro) || 0), 0); 
+                document.getElementById('sum-protein').innerText = Math.round(pro / 7); 
+            }
         }
 
         function copyDataForWolf() {
-            let tMeals = cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === activeDate);
-            let tLifts = cloudData.history.filter(h => new Date(h.timestamp).toLocaleDateString('en-US') === activeDate);
-            let tLogs = cloudData.daily.filter(d => new Date(d.timestamp).toLocaleDateString('en-US') === activeDate);
+            let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === activeDate) : [];
+            let tLifts = cloudData.history ? cloudData.history.filter(h => new Date(h.timestamp).toLocaleDateString('en-US') === activeDate) : [];
+            let tLogs = cloudData.daily ? cloudData.daily.filter(d => new Date(d.timestamp).toLocaleDateString('en-US') === activeDate) : [];
             let dump = `WOLF PROTOCOL - END OF DAY DUMP (${activeDate})\n\n`;
             let wLog = tLogs.find(d => d.category === 'Weight');
             let waterSum = tLogs.filter(d => d.category === 'Water').reduce((acc, curr) => acc + Number(curr.value), 0);
