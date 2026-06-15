@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>SKY APEX MASTER PROTOCOL V20</title>
+    <title>WORKSPACE CONTROL NODE V21</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
@@ -26,7 +26,7 @@
     <header class="py-4 flex justify-between items-center">
         <div>
             <h1 class="text-2xl font-black tracking-tighter text-white">🐺 SKY APEX</h1>
-            <p id="sync-status" class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Awaiting Network Sync...</p>
+            <p id="sync-status" class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Initial Link Required...</p>
         </div>
         <button onclick="fetchCloudData()" class="text-[10px] bg-neutral-900 border border-neutral-700 px-2 py-1 rounded hover:bg-neutral-800 text-neutral-400">🔄 SYNC</button>
     </header>
@@ -130,11 +130,14 @@
 
     <script>
         // PASTE YOUR APPS SCRIPT URL HERE
-        const SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbzG-bHDac99hndYrBkbDdfBH5mnLhk-G3RkY7zJjcwbEKbN0_VJvwLJXiviT4R59oCfPA/exec";
+        const SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbxsiyNPT-iGN9cLpFjp6p_NOWTi-P6EN8BaqHocYknx0tvfTmsDQZx42Vp56GqrDr6Okw/exec";
 
         let cloudData = { program: [], history: [], nutrition: [], daily: [] };
-        let activeDate = new Date().toLocaleDateString('en-US');
-        let activeWaterTally = 0;
+        let activeDateIso = ""; 
+
+        function getIsoString(dateObj) {
+            return dateObj.getFullYear() + "-" + ("0" + (dateObj.getMonth() + 1)).slice(-2) + "-" + ("0" + dateObj.getDate()).slice(-2);
+        }
 
         function setCurrentTime() {
             const now = new Date();
@@ -145,14 +148,16 @@
             const nav = document.getElementById('date-nav'); nav.innerHTML = ''; const today = new Date();
             for(let i = -2; i <= 4; i++) {
                 let t = new Date(); t.setDate(today.getDate() + i);
-                let dStr = t.toLocaleDateString('en-US'); let dName = t.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(); let dNum = t.getDate();
+                let isoStr = getIsoString(t);
+                let dName = t.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(); let dNum = t.getDate();
                 let c = (i === 0) ? "day-btn active min-w-[60px] py-2 rounded bg-emerald-600 text-black border border-emerald-500 flex flex-col items-center justify-center" : "day-btn min-w-[60px] py-2 rounded bg-neutral-900 border border-neutral-800 text-neutral-400 flex flex-col items-center justify-center";
-                nav.innerHTML += `<button onclick="setDate('${dStr}', this)" class="${c}"><span class="text-[9px] font-bold">${dName}</span><span class="text-sm font-black">${dNum}</span></button>`;
+                nav.innerHTML += `<button onclick="setDate('${isoStr}', this)" class="${c}"><span class="text-[9px] font-bold">${dName}</span><span class="text-sm font-black">${dNum}</span></button>`;
             }
+            activeDateIso = getIsoString(today);
         }
 
-        function setDate(dStr, btn) {
-            activeDate = dStr;
+        function setDate(isoStr, btn) {
+            activeDateIso = isoStr;
             document.querySelectorAll('.day-btn').forEach(b => b.className = "day-btn min-w-[60px] py-2 rounded bg-neutral-900 border border-neutral-800 text-neutral-400 flex flex-col items-center justify-center");
             btn.className = "day-btn active min-w-[60px] py-2 rounded bg-emerald-600 text-black border border-emerald-500 flex flex-col items-center justify-center";
             renderAllData();
@@ -170,23 +175,45 @@
             try {
                 let res = await fetch(SHEETS_API_URL); cloudData = await res.json();
                 document.getElementById('sync-status').innerText = "SYNCED: " + new Date().toLocaleTimeString();
+                mergeCloudIntoLocal();
                 renderAllData();
             } catch(e) { document.getElementById('sync-status').innerText = "OFFLINE"; }
         }
 
-        function renderAllData() {
-            renderDailyMetrics();
-            renderWorkoutProgram();
-            renderNutritionFeed();
+        // ---- MIRROR LAYER COUPLING ENGINE ----
+        function mergeCloudIntoLocal() {
+            if(!cloudData.daily) return;
+            // Write incoming verified rows directly to device cache to build hard resistance to amnesia
+            cloudData.daily.forEach(record => {
+                localStorage.setItem(`daily_record_${record.date}`, JSON.stringify(record));
+            });
         }
 
-        // ---- BALANCED PERSISTENT DAILY PANEL ----
+        function getLocalOrCloudRecord(dateIso) {
+            let local = localStorage.getItem(`daily_record_${dateIso}`);
+            if(local) return JSON.parse(local);
+            if(cloudData.daily) {
+                let cloudMatch = cloudData.daily.find(d => d.date === dateIso);
+                if(cloudMatch) return cloudMatch;
+            }
+            return { date: dateIso, weight: "", water: 0, croc: "", b9090: "", rib: "", bug: "", bird: "", plank: "" };
+        }
+
+        function saveLocalRecord(record) {
+            localStorage.setItem(`daily_record_${record.date}`, JSON.stringify(record));
+            // Push data updates to cloudData in memory so tabs retain values inside the session
+            if(!cloudData.daily) cloudData.daily = [];
+            let idx = cloudData.daily.findIndex(d => d.date === record.date);
+            if(idx !== -1) cloudData.daily[idx] = record;
+            else cloudData.daily.push(record);
+        }
+
+        // ---- HIGH PERSISTENCE PANEL ----
         function renderDailyMetrics() {
-            let dayRecord = cloudData.daily ? cloudData.daily.find(d => d.date === activeDate) : null;
+            let dayRecord = getLocalOrCloudRecord(activeDateIso);
             let wInput = document.getElementById('daily-weight');
             let wBtn = document.getElementById('btn-save-weight');
             
-            // 1. Render Weight Persistence
             if(dayRecord && dayRecord.weight) {
                 wInput.value = dayRecord.weight; wInput.disabled = true; wBtn.style.display = 'none';
                 wInput.className = "w-full p-3 rounded text-lg text-center font-bold font-mono bg-emerald-950/30 text-emerald-400 border border-emerald-900";
@@ -195,13 +222,8 @@
                 wInput.className = "w-full p-3 rounded text-lg text-center font-bold font-mono bg-black text-white border border-neutral-800";
             }
 
-            // 2. Render Checkbox State Persistence
             let fields = ['croc', 'b9090', 'rib', 'bug', 'bird', 'plank'];
-            let hasAnyLocked = false;
-            
-            if(dayRecord) {
-                fields.forEach(f => { if(dayRecord[f] === "LOCKED") hasAnyLocked = true; });
-            }
+            let hasAnyLocked = fields.some(f => dayRecord && dayRecord[f] === "LOCKED");
 
             fields.forEach(f => {
                 let btn = document.querySelector(`[data-field="${f}"]`);
@@ -218,10 +240,7 @@
             });
 
             document.getElementById('btn-lock-daily').style.display = hasAnyLocked ? 'none' : 'block';
-
-            // 3. Render Hydration State Persistence
-            activeWaterTally = (dayRecord && dayRecord.water) ? parseInt(dayRecord.water) : 0;
-            document.getElementById('water-total-banner').innerText = `${activeWaterTally} / 6000 mL`;
+            document.getElementById('water-total-banner').innerText = `${dayRecord ? dayRecord.water : 0} / 6000 mL`;
         }
 
         function toggleTask(btn) {
@@ -232,37 +251,43 @@
         function saveWeightOnly() {
             let weightVal = document.getElementById('daily-weight').value;
             if(!weightVal) return;
-            transmit({ type: "daily_update", date: activeDate, weight: weightVal });
-            alert("Weight logged to cloud."); fetchCloudData();
+            let record = getLocalOrCloudRecord(activeDateIso);
+            record.weight = weightVal;
+            saveLocalRecord(record);
+            renderDailyMetrics();
+            transmit({ type: "daily_update", date: activeDateIso, weight: weightVal });
         }
 
         function lockDailyProtocol() {
-            let updatePayload = { type: "daily_update", date: activeDate };
-            let fieldsFound = false;
+            let record = getLocalOrCloudRecord(activeDateIso);
+            let updatePayload = { type: "daily_update", date: activeDateIso };
 
             document.querySelectorAll('#protocol-container .task-btn').forEach(btn => {
                 let field = btn.getAttribute('data-field');
                 if(btn.classList.contains('selected')) {
-                    updatePayload[field] = "LOCKED"; fieldsFound = true;
+                    record[field] = "LOCKED"; updatePayload[field] = "LOCKED";
                 } else {
-                    updatePayload[field] = "SKIPPED";
+                    record[field] = "SKIPPED"; updatePayload[field] = "SKIPPED";
                 }
             });
 
+            saveLocalRecord(record);
+            renderDailyMetrics();
             transmit(updatePayload);
-            alert("Protocols finalized."); fetchCloudData();
         }
 
         function addWaterVolume(vol) {
-            activeWaterTally += vol;
-            document.getElementById('water-total-banner').innerText = `${activeWaterTally} / 6000 mL`;
-            transmit({ type: "daily_update", date: activeDate, water: activeWaterTally });
+            let record = getLocalOrCloudRecord(activeDateIso);
+            record.water = parseInt(record.water || 0) + vol;
+            saveLocalRecord(record);
+            renderDailyMetrics();
+            transmit({ type: "daily_update", date: activeDateIso, water: record.water });
         }
 
-        // ---- RECALIBRATED LIFT REHAB INTERFACE ----
+        // ---- EXERCISE REHAB RE-RENDERING PANEL ----
         function renderWorkoutProgram() {
             const container = document.getElementById('workout-container'); container.innerHTML = '';
-            let todaysLifts = cloudData.program ? cloudData.program.filter(p => p.date === activeDate) : [];
+            let todaysLifts = cloudData.program ? cloudData.program.filter(p => p.date === activeDateIso) : [];
             if(todaysLifts.length === 0) return container.innerHTML = `<p class="text-xs text-neutral-500 text-center italic mt-4">Rest Day or Unprogrammed.</p>`;
 
             todaysLifts.forEach((lift, exIndex) => {
@@ -328,10 +353,10 @@
             alert("🔱 Logged."); ['manual-name','manual-weight','manual-reps','manual-rpe'].forEach(id => document.getElementById(id).value = '');
         }
 
-        // ---- FUEL FEED ----
+        // ---- FUEL PANEL ----
         function renderNutritionFeed() {
             const container = document.getElementById('nutrition-container'); container.innerHTML = '';
-            let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => n.date === activeDate) : [];
+            let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => n.date === activeDateIso) : [];
             if(tMeals.length === 0) return container.innerHTML = `<p class="text-[10px] text-neutral-500 italic">No fuel logged.</p>`;
             
             tMeals.forEach((meal, idx) => {
@@ -360,26 +385,25 @@
         function saveNutrition() {
             const desc = document.getElementById('n-desc').value; const timeVal = document.getElementById('n-time').value;
             if(!desc) return alert("Meal description required.");
-            let mealDate = new Date(activeDate); if(timeVal) { let [h, m] = timeVal.split(':'); mealDate.setHours(h, m, 0, 0); }
+            let mealDate = new Date(activeDateIso.replace(/-/g, '\/')); if(timeVal) { let [h, m] = timeVal.split(':'); mealDate.setHours(h, m, 0, 0); }
             transmit({ type: "nutrition", timestamp: mealDate.toLocaleString(), desc: desc, protein: 0, carbs: 0, fats: 0, fiber: 0 });
             document.getElementById('n-desc').value = ''; setCurrentTime(); 
             if(!cloudData.nutrition) cloudData.nutrition = [];
-            cloudData.nutrition.push({ timestamp: mealDate.toLocaleString(), date: activeDate, desc: desc, pro: 0, carb: 0, fat: 0 }); renderNutritionFeed();
+            cloudData.nutrition.push({ timestamp: mealDate.toLocaleString(), date: activeDateIso, desc: desc, pro: 0, carb: 0, fat: 0 }); renderNutritionFeed();
         }
 
-        // ---- DATA COMMS ----
+        // ---- DATA COMPLIANCE COUPLING ----
         function computeSummary() {
             document.getElementById('sum-workouts').innerText = cloudData.history ? cloudData.history.length : 0;
             if(cloudData.nutrition && cloudData.nutrition.length > 0) { let pro = cloudData.nutrition.reduce((s, i) => s + (Number(i.pro) || 0), 0); document.getElementById('sum-protein').innerText = Math.round(pro / 7); }
         }
 
         function copyDataForWolf() {
-            let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => n.date === activeDate) : [];
-            let tLifts = cloudData.history ? cloudData.history.filter(h => new Date(h.timestamp).toLocaleDateString('en-US') === activeDate) : [];
-            let dayRecord = cloudData.daily ? cloudData.daily.find(d => d.date === activeDate) : null;
+            let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => n.date === activeDateIso) : [];
+            let tLifts = cloudData.history ? cloudData.history.filter(h => getIsoString(new Date(h.timestamp)) === activeDateIso) : [];
+            let dayRecord = getLocalOrCloudRecord(activeDateIso);
             
-            let dump = `WOLF PROTOCOL - END OF DAY DUMP (${activeDate})\n\n`;
-            
+            let dump = `WOLF PROTOCOL - END OF DAY DUMP (${activeDateIso})\n\n`;
             dump += `--- DAILY COMPLIANCE ---\n`;
             dump += `Morning Weight: ${dayRecord && dayRecord.weight ? dayRecord.weight + ' KG' : 'Not Logged'}\n`;
             dump += `Water Total: ${dayRecord && dayRecord.water ? dayRecord.water + ' mL' : '0 mL'}\n`;
