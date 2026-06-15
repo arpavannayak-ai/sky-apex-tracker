@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>WORKSPACE DEPLOYMENT V19</title>
+    <title>WORKSPACE DEPLOYMENT V19.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
@@ -192,9 +192,10 @@
             renderWaterLog();
         }
 
-        // ---- DAILY METRICS ----
+        // ---- RECALIBRATED PERSISTENT METRICS LOGS ----
         function renderDailyMetrics() {
-            let todaysLogs = cloudData.daily ? cloudData.daily.filter(d => new Date(d.timestamp).toLocaleDateString('en-US') === activeDate) : [];
+            // Read values down from the synced database array instead of volatile memory
+            let todaysLogs = cloudData.daily ? cloudData.daily.filter(d => d.date === activeDate) : [];
             let wLog = todaysLogs.find(d => d.category === 'Weight');
             let wInput = document.getElementById('daily-weight');
             
@@ -221,8 +222,8 @@
 
             let ledger = document.getElementById('daily-ledger-container'); ledger.innerHTML = '';
             if(hasLocked || wLog) {
-                if(wLog) ledger.innerHTML += `<div class="text-[10px] text-neutral-400 font-mono bg-neutral-950 p-2 rounded border border-neutral-900">🌅 Weight: <span class="text-emerald-400 font-bold">${wLog.value} KG</span></div>`;
-                if(completedTasks.length > 0) ledger.innerHTML += `<div class="text-[10px] text-neutral-400 font-mono bg-neutral-950 p-2 rounded border border-neutral-900">⚔️ Protocols: <span class="text-emerald-400 font-bold">${completedTasks.join(', ')}</span></div>`;
+                if(wLog) ledger.innerHTML += `<div class="text-[10px] text-neutral-400 font-mono bg-neutral-950 p-2 rounded border border-neutral-900">🌅 Weight Locked: <span class="text-emerald-400 font-bold">${wLog.value} KG</span></div>`;
+                if(completedTasks.length > 0) ledger.innerHTML += `<div class="text-[10px] text-neutral-400 font-mono bg-neutral-950 p-2 rounded border border-neutral-900">⚔️ Protocols Verified: <span class="text-emerald-400 font-bold">${completedTasks.join(', ')}</span></div>`;
             } else { ledger.innerHTML = `<p class="text-[10px] text-neutral-600 italic">No historical verification locked.</p>`; }
         }
 
@@ -239,7 +240,7 @@
             if (weight) {
                 transmit({ type: "daily_log", timestamp: timestampStr, category: "Weight", value: weight });
                 if(!cloudData.daily) cloudData.daily = [];
-                cloudData.daily.push({ timestamp: timestampStr, category: "Weight", value: weight });
+                cloudData.daily.push({ timestamp: timestampStr, date: activeDate, category: "Weight", value: weight });
             }
 
             document.querySelectorAll('.task-btn').forEach(btn => {
@@ -247,15 +248,15 @@
                     let taskName = btn.getAttribute('data-task');
                     transmit({ type: "daily_log", timestamp: timestampStr, category: "Task", value: taskName });
                     if(!cloudData.daily) cloudData.daily = [];
-                    cloudData.daily.push({ timestamp: timestampStr, category: "Task", value: taskName });
+                    cloudData.daily.push({ timestamp: timestampStr, date: activeDate, category: "Task", value: taskName });
                 }
             });
             renderDailyMetrics();
         }
 
-        // ---- WATER ----
+        // ---- PERSISTENT WATER TOTAL LOGS ----
         function renderWaterLog() {
-            let todaysLogs = cloudData.daily ? cloudData.daily.filter(d => new Date(d.timestamp).toLocaleDateString('en-US') === activeDate) : [];
+            let todaysLogs = cloudData.daily ? cloudData.daily.filter(d => d.date === activeDate) : [];
             let waterEntries = todaysLogs.filter(d => d.category === 'Water');
             let container = document.getElementById('water-log-container'); container.innerHTML = '';
             
@@ -273,11 +274,11 @@
             let logDate = new Date(activeDate); logDate.setHours(new Date().getHours(), new Date().getMinutes());
             transmit({ type: "daily_log", timestamp: logDate.toLocaleString(), category: "Water", value: amount });
             if(!cloudData.daily) cloudData.daily = [];
-            cloudData.daily.push({ timestamp: logDate.toLocaleString(), category: "Water", value: amount });
+            cloudData.daily.push({ timestamp: logDate.toLocaleString(), date: activeDate, category: "Water", value: amount });
             renderWaterLog();
         }
 
-        // ---- LIFT WORKOUT UI WITH MUTABLE INPUT STATE ----
+        // ---- WORKOUT UI ----
         function renderWorkoutProgram() {
             const container = document.getElementById('workout-container'); container.innerHTML = '';
             let todaysLifts = cloudData.program ? cloudData.program.filter(p => p.date === activeDate) : [];
@@ -294,9 +295,7 @@
                         <span class="text-xs font-bold text-white uppercase w-3/4">${lift.name}</span>
                         ${lift.rest ? `<span class="text-[9px] bg-neutral-950 text-neutral-400 px-1.5 py-0.5 rounded border border-neutral-800 font-mono whitespace-nowrap">⏱️ ${lift.rest}</span>` : ''}
                     </div>
-                    <div class="text-[10px] text-emerald-400 mb-3 font-mono bg-emerald-950/30 border border-emerald-500/20 px-2 py-1.5 rounded">
-                        🎯 ${lift.target || lift.weight || 'Fluid Targets Loaded'}
-                    </div>
+                    <div class="text-[10px] text-emerald-400 mb-3 font-mono bg-emerald-950/30 border border-emerald-500/20 px-2 py-1.5 rounded">🎯 ${lift.weight}</div>
                     <div id="ex-sets-${exIndex}" class="space-y-1">${rowsHTML}</div>
                     <div class="flex justify-between items-center mt-2">
                         <p class="text-[9px] text-emerald-500/70 font-mono">${pastText}</p>
@@ -351,7 +350,7 @@
             alert("🔱 Logged."); ['manual-name','manual-weight','manual-reps','manual-rpe'].forEach(id => document.getElementById(id).value = '');
         }
 
-        // ---- INLINE MUTABLE NUTRITION ENTRIES ----
+        // ---- NUTRITION ----
         function renderNutritionFeed() {
             const container = document.getElementById('nutrition-container'); container.innerHTML = '';
             let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === activeDate) : [];
@@ -376,8 +375,6 @@
         function updateNutritionRow(idx, originalTimestamp) {
             const updatedDesc = document.getElementById(`edit-nut-desc-${idx}`).value;
             if(!updatedDesc) return;
-            
-            // Transmit mutation event back to sheets row append logic
             transmit({ type: "nutrition", timestamp: originalTimestamp, desc: updatedDesc + " (MUTATED/EDITED)", protein: 0, carbs: 0, fats: 0, fiber: 0 });
             alert("🔱 Overwrite request queued to Cloud Vault.");
         }
@@ -401,7 +398,7 @@
         function copyDataForWolf() {
             let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === activeDate) : [];
             let tLifts = cloudData.history ? cloudData.history.filter(h => new Date(h.timestamp).toLocaleDateString('en-US') === activeDate) : [];
-            let tLogs = cloudData.daily ? cloudData.daily.filter(d => new Date(d.timestamp).toLocaleDateString('en-US') === activeDate) : [];
+            let tLogs = cloudData.daily ? cloudData.daily.filter(d => d.date === activeDate) : [];
             let dump = `WOLF PROTOCOL - END OF DAY DUMP (${activeDate})\n\n`;
             let wLog = tLogs.find(d => d.category === 'Weight');
             let waterSum = tLogs.filter(d => d.category === 'Water').reduce((acc, curr) => acc + Number(curr.value), 0);
