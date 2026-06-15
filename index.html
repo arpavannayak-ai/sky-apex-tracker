@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>WORKSPACE CONTROL NODE V21</title>
+    <title>SKY APEX MASTER COMMAND V22</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
@@ -26,7 +26,7 @@
     <header class="py-4 flex justify-between items-center">
         <div>
             <h1 class="text-2xl font-black tracking-tighter text-white">🐺 SKY APEX</h1>
-            <p id="sync-status" class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Initial Link Required...</p>
+            <p id="sync-status" class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Awaiting Sync...</p>
         </div>
         <button onclick="fetchCloudData()" class="text-[10px] bg-neutral-900 border border-neutral-700 px-2 py-1 rounded hover:bg-neutral-800 text-neutral-400">🔄 SYNC</button>
     </header>
@@ -175,42 +175,18 @@
             try {
                 let res = await fetch(SHEETS_API_URL); cloudData = await res.json();
                 document.getElementById('sync-status').innerText = "SYNCED: " + new Date().toLocaleTimeString();
-                mergeCloudIntoLocal();
                 renderAllData();
             } catch(e) { document.getElementById('sync-status').innerText = "OFFLINE"; }
         }
 
-        // ---- MIRROR LAYER COUPLING ENGINE ----
-        function mergeCloudIntoLocal() {
-            if(!cloudData.daily) return;
-            // Write incoming verified rows directly to device cache to build hard resistance to amnesia
-            cloudData.daily.forEach(record => {
-                localStorage.setItem(`daily_record_${record.date}`, JSON.stringify(record));
-            });
+        function renderAllData() {
+            renderDailyMetrics();
+            renderWorkoutProgram();
+            renderNutritionFeed();
         }
 
-        function getLocalOrCloudRecord(dateIso) {
-            let local = localStorage.getItem(`daily_record_${dateIso}`);
-            if(local) return JSON.parse(local);
-            if(cloudData.daily) {
-                let cloudMatch = cloudData.daily.find(d => d.date === dateIso);
-                if(cloudMatch) return cloudMatch;
-            }
-            return { date: dateIso, weight: "", water: 0, croc: "", b9090: "", rib: "", bug: "", bird: "", plank: "" };
-        }
-
-        function saveLocalRecord(record) {
-            localStorage.setItem(`daily_record_${record.date}`, JSON.stringify(record));
-            // Push data updates to cloudData in memory so tabs retain values inside the session
-            if(!cloudData.daily) cloudData.daily = [];
-            let idx = cloudData.daily.findIndex(d => d.date === record.date);
-            if(idx !== -1) cloudData.daily[idx] = record;
-            else cloudData.daily.push(record);
-        }
-
-        // ---- HIGH PERSISTENCE PANEL ----
         function renderDailyMetrics() {
-            let dayRecord = getLocalOrCloudRecord(activeDateIso);
+            let dayRecord = cloudData.daily ? cloudData.daily.find(d => d.date === activeDateIso) : null;
             let wInput = document.getElementById('daily-weight');
             let wBtn = document.getElementById('btn-save-weight');
             
@@ -251,40 +227,30 @@
         function saveWeightOnly() {
             let weightVal = document.getElementById('daily-weight').value;
             if(!weightVal) return;
-            let record = getLocalOrCloudRecord(activeDateIso);
-            record.weight = weightVal;
-            saveLocalRecord(record);
-            renderDailyMetrics();
             transmit({ type: "daily_update", date: activeDateIso, weight: weightVal });
+            alert("Weight sent."); setTimeout(fetchCloudData, 800);
         }
 
         function lockDailyProtocol() {
-            let record = getLocalOrCloudRecord(activeDateIso);
             let updatePayload = { type: "daily_update", date: activeDateIso };
-
             document.querySelectorAll('#protocol-container .task-btn').forEach(btn => {
                 let field = btn.getAttribute('data-field');
-                if(btn.classList.contains('selected')) {
-                    record[field] = "LOCKED"; updatePayload[field] = "LOCKED";
-                } else {
-                    record[field] = "SKIPPED"; updatePayload[field] = "SKIPPED";
-                }
+                updatePayload[field] = btn.classList.contains('selected') ? "LOCKED" : "SKIPPED";
             });
-
-            saveLocalRecord(record);
-            renderDailyMetrics();
             transmit(updatePayload);
+            alert("Protocols sent."); setTimeout(fetchCloudData, 800);
         }
 
         function addWaterVolume(vol) {
-            let record = getLocalOrCloudRecord(activeDateIso);
-            record.water = parseInt(record.water || 0) + vol;
-            saveLocalRecord(record);
-            renderDailyMetrics();
-            transmit({ type: "daily_update", date: activeDateIso, water: record.water });
+            let dayRecord = cloudData.daily ? cloudData.daily.find(d => d.date === activeDateIso) : null;
+            let currentWater = dayRecord ? parseInt(dayRecord.water || 0) : 0;
+            let newWater = currentWater + vol;
+            
+            document.getElementById('water-total-banner').innerText = `${newWater} / 6000 mL`;
+            transmit({ type: "daily_update", date: activeDateIso, water: newWater });
+            setTimeout(fetchCloudData, 800);
         }
 
-        // ---- EXERCISE REHAB RE-RENDERING PANEL ----
         function renderWorkoutProgram() {
             const container = document.getElementById('workout-container'); container.innerHTML = '';
             let todaysLifts = cloudData.program ? cloudData.program.filter(p => p.date === activeDateIso) : [];
@@ -353,7 +319,6 @@
             alert("🔱 Logged."); ['manual-name','manual-weight','manual-reps','manual-rpe'].forEach(id => document.getElementById(id).value = '');
         }
 
-        // ---- FUEL PANEL ----
         function renderNutritionFeed() {
             const container = document.getElementById('nutrition-container'); container.innerHTML = '';
             let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => n.date === activeDateIso) : [];
@@ -379,7 +344,7 @@
             const updatedDesc = document.getElementById(`edit-nut-desc-${idx}`).value;
             if(!updatedDesc) return;
             transmit({ type: "nutrition", timestamp: originalTimestamp, desc: updatedDesc + " (MUTATED)", protein: 0, carbs: 0, fats: 0, fiber: 0 });
-            alert("Mutation queued.");
+            alert("Mutation queued."); setTimeout(fetchCloudData, 800);
         }
 
         function saveNutrition() {
@@ -387,12 +352,10 @@
             if(!desc) return alert("Meal description required.");
             let mealDate = new Date(activeDateIso.replace(/-/g, '\/')); if(timeVal) { let [h, m] = timeVal.split(':'); mealDate.setHours(h, m, 0, 0); }
             transmit({ type: "nutrition", timestamp: mealDate.toLocaleString(), desc: desc, protein: 0, carbs: 0, fats: 0, fiber: 0 });
-            document.getElementById('n-desc').value = ''; setCurrentTime(); 
-            if(!cloudData.nutrition) cloudData.nutrition = [];
-            cloudData.nutrition.push({ timestamp: mealDate.toLocaleString(), date: activeDateIso, desc: desc, pro: 0, carb: 0, fat: 0 }); renderNutritionFeed();
+            document.getElementById('n-desc').value = ''; setCurrentTime();
+            setTimeout(fetchCloudData, 800);
         }
 
-        // ---- DATA COMPLIANCE COUPLING ----
         function computeSummary() {
             document.getElementById('sum-workouts').innerText = cloudData.history ? cloudData.history.length : 0;
             if(cloudData.nutrition && cloudData.nutrition.length > 0) { let pro = cloudData.nutrition.reduce((s, i) => s + (Number(i.pro) || 0), 0); document.getElementById('sum-protein').innerText = Math.round(pro / 7); }
@@ -401,12 +364,10 @@
         function copyDataForWolf() {
             let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => n.date === activeDateIso) : [];
             let tLifts = cloudData.history ? cloudData.history.filter(h => getIsoString(new Date(h.timestamp)) === activeDateIso) : [];
-            let dayRecord = getLocalOrCloudRecord(activeDateIso);
+            let dayRecord = cloudData.daily ? cloudData.daily.find(d => d.date === activeDateIso) : null;
             
             let dump = `WOLF PROTOCOL - END OF DAY DUMP (${activeDateIso})\n\n`;
-            dump += `--- DAILY COMPLIANCE ---\n`;
-            dump += `Morning Weight: ${dayRecord && dayRecord.weight ? dayRecord.weight + ' KG' : 'Not Logged'}\n`;
-            dump += `Water Total: ${dayRecord && dayRecord.water ? dayRecord.water + ' mL' : '0 mL'}\n`;
+            dump += `--- DAILY COMPLIANCE ---\nMorning Weight: ${dayRecord && dayRecord.weight ? dayRecord.weight + ' KG' : 'Not Logged'}\nWater Total: ${dayRecord && dayRecord.water ? dayRecord.water + ' mL' : '0 mL'}\n`;
             
             let completed = [];
             if(dayRecord) {
