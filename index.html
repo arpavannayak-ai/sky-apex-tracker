@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>SKY APEX MASTER COMMAND V24</title>
+    <title>SKY APEX MASTER COMMAND V24.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
@@ -20,6 +20,32 @@
         .task-btn.locked { background-color: #064e3b; border-color: #00ff66; color: #00ff66; font-weight: bold; opacity: 1; cursor: not-allowed; }
         .task-btn.skipped { opacity: 0.25; cursor: not-allowed; text-decoration: line-through; background-color: #111; border-color: #222; }
     </style>
+    <script>
+        // ---- CRITICAL: HOISTED GLOBAL CORE NETWORK ENGINE ----
+        // PASTE YOUR APPS SCRIPT URL HERE
+        const SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbxsiyNPT-iGN9cLpFjp6p_NOWTi-P6EN8BaqHocYknx0tvfTmsDQZx42Vp56GqrDr6Okw/exec";
+
+        let cloudData = { program: [], history: [], nutrition: [], daily: [] };
+        let activeDateIso = ""; 
+
+        function getIsoString(dateObj) {
+            return dateObj.getFullYear() + "-" + ("0" + (dateObj.getMonth() + 1)).slice(-2) + "-" + ("0" + dateObj.getDate()).slice(-2);
+        }
+
+        async function fetchCloudData() {
+            const statusEl = document.getElementById('sync-status');
+            if(statusEl) statusEl.innerText = "DOWNLOADING...";
+            try {
+                let res = await fetch(SHEETS_API_URL); 
+                cloudData = await res.json();
+                if(statusEl) statusEl.innerText = "SYNCED: " + new Date().toLocaleTimeString();
+                mergeCloudIntoLocal();
+                renderAllData();
+            } catch(e) { 
+                if(statusEl) statusEl.innerText = "OFFLINE"; 
+            }
+        }
+    </script>
 </head>
 <body class="max-w-md mx-auto min-h-screen flex flex-col px-4 pb-12">
 
@@ -141,16 +167,7 @@
     </main>
 
     <script>
-        // PASTE YOUR APPS SCRIPT URL HERE
-        const SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbxsiyNPT-iGN9cLpFjp6p_NOWTi-P6EN8BaqHocYknx0tvfTmsDQZx42Vp56GqrDr6Okw/exec";
-
-        let cloudData = { program: [], history: [], nutrition: [], daily: [] };
-        let activeDateIso = ""; 
-
-        function getIsoString(dateObj) {
-            return dateObj.getFullYear() + "-" + ("0" + (dateObj.getMonth() + 1)).slice(-2) + "-" + ("0" + dateObj.getDate()).slice(-2);
-        }
-
+        // ---- INLINE BUSINESS LOGIC RUNTIME ----
         function setCurrentTime() {
             const now = new Date();
             document.getElementById('n-time').value = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
@@ -180,16 +197,6 @@
             document.getElementById('tab-' + tab).classList.remove('hidden'); document.getElementById('btn-' + tab).classList.add('active');
             if(tab === 'nutrition') setCurrentTime();
             if(tab === 'summary') computeSummary();
-        }
-
-        async function fetchCloudData() {
-            document.getElementById('sync-status').innerText = "DOWNLOADING...";
-            try {
-                let res = await fetch(SHEETS_API_URL); cloudData = await res.json();
-                document.getElementById('sync-status').innerText = "SYNCED: " + new Date().toLocaleTimeString();
-                mergeCloudIntoLocal();
-                renderAllData();
-            } catch(e) { document.getElementById('sync-status').innerText = "OFFLINE"; }
         }
 
         function mergeCloudIntoLocal() {
@@ -297,7 +304,7 @@
             transmit({ type: "daily_update", date: activeDateIso, water: record.water });
         }
 
-        // ---- EXERCISE TAB: PURE LEDGER DRIVEN MECHANICS ----
+        // ---- EXERCISE TAB PANEL ----
         function renderWorkoutProgram() {
             const blueprintContainer = document.getElementById('workout-blueprint-container');
             const selectDropdown = document.getElementById('lift-name-select');
@@ -306,7 +313,6 @@
             blueprintContainer.innerHTML = '';
             historyFeed.innerHTML = '';
             
-            // 1. Keep dropdown select items sticky
             let currentSelectedValue = selectDropdown.value;
             selectDropdown.innerHTML = '<option value="">-- SELECT EXERCISE --</option>';
 
@@ -318,10 +324,8 @@
                 return;
             }
 
-            // 2. Build Immutable Blueprint Cards
             todaysLifts.forEach(lift => {
                 selectDropdown.innerHTML += `<option value="${lift.name}">${lift.name}</option>`;
-                
                 blueprintContainer.innerHTML += `
                 <div class="bg-neutral-950 p-2.5 rounded border border-neutral-900 flex justify-between items-center text-xs">
                     <div class="w-2/3">
@@ -334,8 +338,6 @@
             
             selectDropdown.value = currentSelectedValue;
 
-            // 3. Render Today's Actions into the History Feed (Mirroring Nutrition Tab)
-            // Filtering history array logs that happen today
             let todayLocalStr = new Date(activeDateIso.replace(/-/g, '\/')).toLocaleDateString('en-US');
             let todayActions = cloudData.history ? cloudData.history.filter(h => new Date(h.timestamp).toLocaleDateString('en-US') === todayLocalStr) : [];
             
@@ -371,13 +373,11 @@
             let now = new Date();
             let timestampStr = now.toLocaleString();
 
-            // Optimistic UI Append to immediately prevent screen flash amnesia
             if(!cloudData.history) cloudData.history = [];
-            cloudData.history.push({ timestamp: now.toISOString(), name: name, metrics: metricsStr });
+            cloudData.history.push({ timestamp: now.toISOString(), name: name, metrics: m = metricsStr });
             
             transmit({ type: "exercise", timestamp: timestampStr, name: name, metrics: metricsStr, notes: "Console Logged" });
             
-            // Reset input console states
             document.getElementById('lift-weight').value = '';
             document.getElementById('lift-reps').value = '';
             document.getElementById('lift-rpe').value = '';
