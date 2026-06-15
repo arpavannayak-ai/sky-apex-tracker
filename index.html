@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>WORKSPACE DEPLOYMENT V19.1</title>
+    <title>SKY APEX MASTER PROTOCOL V20</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
@@ -18,7 +18,7 @@
         .task-btn { background-color: #000; border: 1px solid #333; color: #a3a3a3; transition: all 0.2s; }
         .task-btn.selected { background-color: rgba(6, 78, 59, 0.4); border-color: #00ff66; color: #00ff66; font-weight: bold; }
         .task-btn.locked { background-color: #064e3b; border-color: #00ff66; color: #00ff66; font-weight: bold; opacity: 1; cursor: not-allowed; }
-        .task-btn.skipped { opacity: 0.3; cursor: not-allowed; text-decoration: line-through; }
+        .task-btn.skipped { opacity: 0.25; cursor: not-allowed; text-decoration: line-through; background-color: #111; border-color: #222; }
     </style>
 </head>
 <body class="max-w-md mx-auto min-h-screen flex flex-col px-4 pb-12">
@@ -45,26 +45,24 @@
         <section id="tab-daily" class="space-y-4">
             <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
                 <h3 class="text-[10px] text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-1">Morning Anchor</h3>
-                <input type="number" step="0.1" id="daily-weight" placeholder="Weight (KG)" class="w-full p-3 rounded text-lg text-center font-bold font-mono bg-black text-white border border-neutral-800">
+                <div class="flex gap-2 items-center">
+                    <input type="number" step="0.1" id="daily-weight" placeholder="Weight (KG)" class="w-full p-3 rounded text-lg text-center font-bold font-mono bg-black text-white border border-neutral-800">
+                    <button id="btn-save-weight" onclick="saveWeightOnly()" class="bg-neutral-800 text-white font-bold py-3 px-4 rounded text-xs uppercase border border-neutral-700">Save</button>
+                </div>
             </div>
 
             <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3" id="protocol-container">
                 <h3 class="text-[10px] text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-1">Respiratory Protocol</h3>
-                <button id="t-croc" onclick="toggleTask(this)" class="task-btn w-full p-3 rounded text-xs text-left" data-task="Crocodile Breath">Crocodile Breath</button>
-                <button id="t-9090" onclick="toggleTask(this)" class="task-btn w-full p-3 rounded text-xs text-left" data-task="90-90 Breathing">90-90 Breathing</button>
-                <button id="t-rib" onclick="toggleTask(this)" class="task-btn w-full p-3 rounded text-xs text-left" data-task="Lateral Rib Exp">Lateral Rib Expansion</button>
+                <button id="t-croc" onclick="toggleTask(this)" class="task-btn w-full p-3 rounded text-xs text-left" data-field="croc" data-task="Crocodile Breath">Crocodile Breath</button>
+                <button id="t-9090" onclick="toggleTask(this)" class="task-btn w-full p-3 rounded text-xs text-left" data-field="b9090" data-task="90-90 Breathing">90-90 Breathing</button>
+                <button id="t-rib" onclick="toggleTask(this)" class="task-btn w-full p-3 rounded text-xs text-left" data-field="rib" data-task="Lateral Rib Exp">Lateral Rib Expansion</button>
                 
                 <h3 class="text-[10px] text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-1 mt-4">Core Activation</h3>
-                <button id="t-bug" onclick="toggleTask(this)" class="task-btn w-full p-3 rounded text-xs text-left" data-task="Dead Bug (20s)">Dead Bug (20 sec)</button>
-                <button id="t-bird" onclick="toggleTask(this)" class="task-btn w-full p-3 rounded text-xs text-left" data-task="Rev Bird Dog (5s)">Reverse Bird Dog (5s Hold)</button>
-                <button id="t-plank" onclick="toggleTask(this)" class="task-btn w-full p-3 rounded text-xs text-left" data-task="Single Plank (5s)">Single Arm/Leg Plank (5s Hold)</button>
+                <button id="t-bug" onclick="toggleTask(this)" class="task-btn w-full p-3 rounded text-xs text-left" data-field="bug" data-task="Dead Bug (20s)">Dead Bug (20 sec)</button>
+                <button id="t-bird" onclick="toggleTask(this)" class="task-btn w-full p-3 rounded text-xs text-left" data-field="bird" data-task="Rev Bird Dog (5s)">Reverse Bird Dog (5s Hold)</button>
+                <button id="t-plank" onclick="toggleTask(this)" class="task-btn w-full p-3 rounded text-xs text-left" data-field="plank" data-task="Single Plank (5s)">Single Arm/Leg Plank (5s Hold)</button>
 
                 <button id="btn-lock-daily" onclick="lockDailyProtocol()" class="w-full bg-emerald-700 hover:bg-emerald-600 text-black font-black py-3 rounded text-sm uppercase tracking-wider mt-4">Lock Daily Protocol</button>
-            </div>
-
-            <div class="space-y-2 mt-4">
-                <h4 class="text-[10px] font-bold text-neutral-500 uppercase border-b border-neutral-800 pb-1">Protocol Compliance Ledger</h4>
-                <div id="daily-ledger-container" class="space-y-1.5"></div>
             </div>
         </section>
 
@@ -87,10 +85,9 @@
             <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
                 <div class="flex justify-between items-center">
                     <h3 class="text-xs font-bold text-blue-400 tracking-widest uppercase">Hydration Input</h3>
-                    <span id="water-total-banner" class="text-xs font-black text-white bg-blue-950 border border-blue-800 px-2 py-0.5 rounded font-mono">TOTAL: 0.0 L</span>
+                    <span id="water-total-banner" class="text-xs font-black text-white bg-blue-950 border border-blue-800 px-2 py-0.5 rounded font-mono">0 / 6000 mL</span>
                 </div>
-                <button onclick="logWater(500)" class="w-full bg-blue-600 hover:bg-blue-500 text-black font-black py-4 rounded text-sm uppercase tracking-widest transition">+ 500mL Water</button>
-                <div id="water-log-container" class="space-y-1 max-h-32 overflow-y-auto pt-1"></div>
+                <button onclick="addWaterVolume(500)" class="w-full bg-blue-600 hover:bg-blue-500 text-black font-black py-4 rounded text-sm uppercase tracking-widest transition">+ 500mL Water</button>
             </div>
 
             <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
@@ -137,15 +134,7 @@
 
         let cloudData = { program: [], history: [], nutrition: [], daily: [] };
         let activeDate = new Date().toLocaleDateString('en-US');
-
-        const TASK_MAP = [
-            { id: 't-croc', name: 'Crocodile Breath' },
-            { id: 't-9090', name: '90-90 Breathing' },
-            { id: 't-rib', name: 'Lateral Rib Exp' },
-            { id: 't-bug', name: 'Dead Bug (20s)' },
-            { id: 't-bird', name: 'Rev Bird Dog (5s)' },
-            { id: 't-plank', name: 'Single Plank (5s)' }
-        ];
+        let activeWaterTally = 0;
 
         function setCurrentTime() {
             const now = new Date();
@@ -189,42 +178,50 @@
             renderDailyMetrics();
             renderWorkoutProgram();
             renderNutritionFeed();
-            renderWaterLog();
         }
 
-        // ---- RECALIBRATED PERSISTENT METRICS LOGS ----
+        // ---- BALANCED PERSISTENT DAILY PANEL ----
         function renderDailyMetrics() {
-            // Read values down from the synced database array instead of volatile memory
-            let todaysLogs = cloudData.daily ? cloudData.daily.filter(d => d.date === activeDate) : [];
-            let wLog = todaysLogs.find(d => d.category === 'Weight');
+            let dayRecord = cloudData.daily ? cloudData.daily.find(d => d.date === activeDate) : null;
             let wInput = document.getElementById('daily-weight');
+            let wBtn = document.getElementById('btn-save-weight');
             
-            if(wLog) {
-                wInput.value = wLog.value; wInput.disabled = true; wInput.className = "w-full p-3 rounded text-lg text-center font-bold font-mono bg-emerald-950/30 text-emerald-400 border border-emerald-900";
+            // 1. Render Weight Persistence
+            if(dayRecord && dayRecord.weight) {
+                wInput.value = dayRecord.weight; wInput.disabled = true; wBtn.style.display = 'none';
+                wInput.className = "w-full p-3 rounded text-lg text-center font-bold font-mono bg-emerald-950/30 text-emerald-400 border border-emerald-900";
             } else {
-                wInput.value = ''; wInput.disabled = false; wInput.className = "w-full p-3 rounded text-lg text-center font-bold font-mono bg-black text-white border border-neutral-800";
+                wInput.value = ''; wInput.disabled = false; wBtn.style.display = 'block';
+                wInput.className = "w-full p-3 rounded text-lg text-center font-bold font-mono bg-black text-white border border-neutral-800";
             }
 
-            let completedTasks = todaysLogs.filter(d => d.category === 'Task').map(d => d.value);
-            let hasLocked = completedTasks.length > 0;
+            // 2. Render Checkbox State Persistence
+            let fields = ['croc', 'b9090', 'rib', 'bug', 'bird', 'plank'];
+            let hasAnyLocked = false;
             
-            document.querySelectorAll('.task-btn').forEach(btn => {
-                let taskName = btn.getAttribute('data-task');
+            if(dayRecord) {
+                fields.forEach(f => { if(dayRecord[f] === "LOCKED") hasAnyLocked = true; });
+            }
+
+            fields.forEach(f => {
+                let btn = document.querySelector(`[data-field="${f}"]`);
+                let tName = btn.getAttribute('data-task');
                 btn.classList.remove('selected', 'locked', 'skipped');
-                if (completedTasks.includes(taskName)) {
-                    btn.classList.add('locked'); btn.innerText = `✔️ ${taskName}`;
-                } else if (hasLocked) {
-                    btn.classList.add('skipped'); btn.innerText = `❌ ${taskName}`;
-                } else { btn.innerText = taskName; }
+                
+                if (dayRecord && dayRecord[f] === "LOCKED") {
+                    btn.classList.add('locked'); btn.innerText = `✔️ ${tName}`;
+                } else if (hasAnyLocked) {
+                    btn.classList.add('skipped'); btn.innerText = `❌ ${tName}`;
+                } else {
+                    btn.innerText = tName;
+                }
             });
 
-            document.getElementById('btn-lock-daily').style.display = (hasLocked || wLog) ? 'none' : 'block';
+            document.getElementById('btn-lock-daily').style.display = hasAnyLocked ? 'none' : 'block';
 
-            let ledger = document.getElementById('daily-ledger-container'); ledger.innerHTML = '';
-            if(hasLocked || wLog) {
-                if(wLog) ledger.innerHTML += `<div class="text-[10px] text-neutral-400 font-mono bg-neutral-950 p-2 rounded border border-neutral-900">🌅 Weight Locked: <span class="text-emerald-400 font-bold">${wLog.value} KG</span></div>`;
-                if(completedTasks.length > 0) ledger.innerHTML += `<div class="text-[10px] text-neutral-400 font-mono bg-neutral-950 p-2 rounded border border-neutral-900">⚔️ Protocols Verified: <span class="text-emerald-400 font-bold">${completedTasks.join(', ')}</span></div>`;
-            } else { ledger.innerHTML = `<p class="text-[10px] text-neutral-600 italic">No historical verification locked.</p>`; }
+            // 3. Render Hydration State Persistence
+            activeWaterTally = (dayRecord && dayRecord.water) ? parseInt(dayRecord.water) : 0;
+            document.getElementById('water-total-banner').innerText = `${activeWaterTally} / 6000 mL`;
         }
 
         function toggleTask(btn) {
@@ -232,53 +229,37 @@
             btn.classList.toggle('selected');
         }
 
-        function lockDailyProtocol() {
-            let logDate = new Date(activeDate); logDate.setHours(new Date().getHours(), new Date().getMinutes());
-            let timestampStr = logDate.toLocaleString();
-            let weight = document.getElementById('daily-weight').value;
-            
-            if (weight) {
-                transmit({ type: "daily_log", timestamp: timestampStr, category: "Weight", value: weight });
-                if(!cloudData.daily) cloudData.daily = [];
-                cloudData.daily.push({ timestamp: timestampStr, date: activeDate, category: "Weight", value: weight });
-            }
+        function saveWeightOnly() {
+            let weightVal = document.getElementById('daily-weight').value;
+            if(!weightVal) return;
+            transmit({ type: "daily_update", date: activeDate, weight: weightVal });
+            alert("Weight logged to cloud."); fetchCloudData();
+        }
 
-            document.querySelectorAll('.task-btn').forEach(btn => {
+        function lockDailyProtocol() {
+            let updatePayload = { type: "daily_update", date: activeDate };
+            let fieldsFound = false;
+
+            document.querySelectorAll('#protocol-container .task-btn').forEach(btn => {
+                let field = btn.getAttribute('data-field');
                 if(btn.classList.contains('selected')) {
-                    let taskName = btn.getAttribute('data-task');
-                    transmit({ type: "daily_log", timestamp: timestampStr, category: "Task", value: taskName });
-                    if(!cloudData.daily) cloudData.daily = [];
-                    cloudData.daily.push({ timestamp: timestampStr, date: activeDate, category: "Task", value: taskName });
+                    updatePayload[field] = "LOCKED"; fieldsFound = true;
+                } else {
+                    updatePayload[field] = "SKIPPED";
                 }
             });
-            renderDailyMetrics();
+
+            transmit(updatePayload);
+            alert("Protocols finalized."); fetchCloudData();
         }
 
-        // ---- PERSISTENT WATER TOTAL LOGS ----
-        function renderWaterLog() {
-            let todaysLogs = cloudData.daily ? cloudData.daily.filter(d => d.date === activeDate) : [];
-            let waterEntries = todaysLogs.filter(d => d.category === 'Water');
-            let container = document.getElementById('water-log-container'); container.innerHTML = '';
-            
-            let runningSum = 0;
-            waterEntries.forEach(entry => {
-                runningSum += Number(entry.value);
-                let timeStr = new Date(entry.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                container.innerHTML += `<div class="text-[10px] font-mono text-neutral-500 bg-black/40 px-2 py-0.5 rounded border border-neutral-900/30 flex justify-between"><span>💧 Water Intake: ${(runningSum/1000).toFixed(1)}L</span><span>${timeStr}</span></div>`;
-            });
-            document.getElementById('water-total-banner').innerText = `TOTAL: ${(runningSum/1000).toFixed(1)} L`;
-            if(runningSum === 0) container.innerHTML = `<p class="text-[9px] text-neutral-600 italic pl-1">0 mL logged.</p>`;
+        function addWaterVolume(vol) {
+            activeWaterTally += vol;
+            document.getElementById('water-total-banner').innerText = `${activeWaterTally} / 6000 mL`;
+            transmit({ type: "daily_update", date: activeDate, water: activeWaterTally });
         }
 
-        function logWater(amount) {
-            let logDate = new Date(activeDate); logDate.setHours(new Date().getHours(), new Date().getMinutes());
-            transmit({ type: "daily_log", timestamp: logDate.toLocaleString(), category: "Water", value: amount });
-            if(!cloudData.daily) cloudData.daily = [];
-            cloudData.daily.push({ timestamp: logDate.toLocaleString(), date: activeDate, category: "Water", value: amount });
-            renderWaterLog();
-        }
-
-        // ---- WORKOUT UI ----
+        // ---- RECALIBRATED LIFT REHAB INTERFACE ----
         function renderWorkoutProgram() {
             const container = document.getElementById('workout-container'); container.innerHTML = '';
             let todaysLifts = cloudData.program ? cloudData.program.filter(p => p.date === activeDate) : [];
@@ -293,7 +274,7 @@
                 <div class="bg-neutral-900 p-3 rounded border border-neutral-800 mb-2">
                     <div class="flex justify-between items-start mb-1">
                         <span class="text-xs font-bold text-white uppercase w-3/4">${lift.name}</span>
-                        ${lift.rest ? `<span class="text-[9px] bg-neutral-950 text-neutral-400 px-1.5 py-0.5 rounded border border-neutral-800 font-mono whitespace-nowrap">⏱️ ${lift.rest}</span>` : ''}
+                        ${lift.sets ? `<span class="text-[9px] bg-neutral-950 text-neutral-400 px-1.5 py-0.5 rounded border border-neutral-800 font-mono whitespace-nowrap">⏱️ ${lift.sets}</span>` : ''}
                     </div>
                     <div class="text-[10px] text-emerald-400 mb-3 font-mono bg-emerald-950/30 border border-emerald-500/20 px-2 py-1.5 rounded">🎯 ${lift.weight}</div>
                     <div id="ex-sets-${exIndex}" class="space-y-1">${rowsHTML}</div>
@@ -336,10 +317,7 @@
             if(!w || !r) return alert("Weight and Reps required.");
             let m = `${w} x ${r}`; if(rpe) m += ` @ RPE ${rpe}`;
             transmit({ type: "exercise", timestamp: new Date().toLocaleString(), name: name + ` (Set ${setIndex+1})`, metrics: m, notes: "Programmed" });
-            
-            let btn = document.getElementById(`btn-${exIndex}-${setIndex}`); 
-            btn.innerText = 'UPDATE'; 
-            btn.className = "bg-neutral-800 text-amber-400 text-[9px] font-bold px-2 py-1.5 rounded uppercase border border-amber-500/50 min-w-[50px]";
+            let btn = document.getElementById(`btn-${exIndex}-${setIndex}`); btn.innerText = 'UPDATE'; btn.className = "bg-neutral-800 text-amber-400 text-[9px] font-bold px-2 py-1.5 rounded uppercase border border-amber-500/50 min-w-[50px]";
         }
 
         function saveManualExercise() {
@@ -350,10 +328,10 @@
             alert("🔱 Logged."); ['manual-name','manual-weight','manual-reps','manual-rpe'].forEach(id => document.getElementById(id).value = '');
         }
 
-        // ---- NUTRITION ----
+        // ---- FUEL FEED ----
         function renderNutritionFeed() {
             const container = document.getElementById('nutrition-container'); container.innerHTML = '';
-            let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === activeDate) : [];
+            let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => n.date === activeDate) : [];
             if(tMeals.length === 0) return container.innerHTML = `<p class="text-[10px] text-neutral-500 italic">No fuel logged.</p>`;
             
             tMeals.forEach((meal, idx) => {
@@ -375,8 +353,8 @@
         function updateNutritionRow(idx, originalTimestamp) {
             const updatedDesc = document.getElementById(`edit-nut-desc-${idx}`).value;
             if(!updatedDesc) return;
-            transmit({ type: "nutrition", timestamp: originalTimestamp, desc: updatedDesc + " (MUTATED/EDITED)", protein: 0, carbs: 0, fats: 0, fiber: 0 });
-            alert("🔱 Overwrite request queued to Cloud Vault.");
+            transmit({ type: "nutrition", timestamp: originalTimestamp, desc: updatedDesc + " (MUTATED)", protein: 0, carbs: 0, fats: 0, fiber: 0 });
+            alert("Mutation queued.");
         }
 
         function saveNutrition() {
@@ -386,7 +364,7 @@
             transmit({ type: "nutrition", timestamp: mealDate.toLocaleString(), desc: desc, protein: 0, carbs: 0, fats: 0, fiber: 0 });
             document.getElementById('n-desc').value = ''; setCurrentTime(); 
             if(!cloudData.nutrition) cloudData.nutrition = [];
-            cloudData.nutrition.push({ timestamp: mealDate.toLocaleString(), desc: desc, pro: 0, carb: 0, fat: 0 }); renderNutritionFeed();
+            cloudData.nutrition.push({ timestamp: mealDate.toLocaleString(), date: activeDate, desc: desc, pro: 0, carb: 0, fat: 0 }); renderNutritionFeed();
         }
 
         // ---- DATA COMMS ----
@@ -396,28 +374,42 @@
         }
 
         function copyDataForWolf() {
-            let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === activeDate) : [];
+            let tMeals = cloudData.nutrition ? cloudData.nutrition.filter(n => n.date === activeDate) : [];
             let tLifts = cloudData.history ? cloudData.history.filter(h => new Date(h.timestamp).toLocaleDateString('en-US') === activeDate) : [];
-            let tLogs = cloudData.daily ? cloudData.daily.filter(d => d.date === activeDate) : [];
-            let dump = `WOLF PROTOCOL - END OF DAY DUMP (${activeDate})\n\n`;
-            let wLog = tLogs.find(d => d.category === 'Weight');
-            let waterSum = tLogs.filter(d => d.category === 'Water').reduce((acc, curr) => acc + Number(curr.value), 0);
-            let tasks = tLogs.filter(d => d.category === 'Task').map(d => d.value);
+            let dayRecord = cloudData.daily ? cloudData.daily.find(d => d.date === activeDate) : null;
             
-            dump += `--- DAILY COMPLIANCE ---\nMorning Weight: ${wLog ? wLog.value + ' KG' : 'Not Logged'}\nWater Total: ${(waterSum/1000).toFixed(1)} L\nTasks Locked: ${tasks.length > 0 ? tasks.join(', ') : 'None'}\n\n`;
+            let dump = `WOLF PROTOCOL - END OF DAY DUMP (${activeDate})\n\n`;
+            
+            dump += `--- DAILY COMPLIANCE ---\n`;
+            dump += `Morning Weight: ${dayRecord && dayRecord.weight ? dayRecord.weight + ' KG' : 'Not Logged'}\n`;
+            dump += `Water Total: ${dayRecord && dayRecord.water ? dayRecord.water + ' mL' : '0 mL'}\n`;
+            
+            let completed = [];
+            if(dayRecord) {
+                if(dayRecord.croc === "LOCKED") completed.push("Croc Breath");
+                if(dayRecord.b9090 === "LOCKED") completed.push("90-90 Breathing");
+                if(dayRecord.rib === "LOCKED") completed.push("Lateral Rib Exp");
+                if(dayRecord.bug === "LOCKED") completed.push("Dead Bug");
+                if(dayRecord.bird === "LOCKED") completed.push("Bird Dog");
+                if(dayRecord.plank === "LOCKED") completed.push("Plank");
+            }
+            dump += `Tasks Locked: ${completed.length > 0 ? completed.join(', ') : 'None'}\n\n`;
+            
             dump += "--- NUTRITION LOG ---\n";
             if(tMeals.length === 0) dump += "NO FOOD LOGGED.\n";
-            tMeals.forEach(n => { dump += `[${new Date(n.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}] ${n.desc}\n`; });
+            tMeals.forEach(n => { dump += `- ${n.desc}\n`; });
+            
             dump += "\n--- LIFT METRICS ---\n";
             if(tLifts.length === 0) dump += "NO LIFTS LOGGED.\n";
             tLifts.forEach(h => { dump += `- ${h.name}: ${h.metrics}\n`; });
+            
             dump += "\nAssess metrics and crunch macros.";
             navigator.clipboard.writeText(dump); alert("📋 Data Copied.");
         }
 
         function saveAIAssessment() {
             const text = document.getElementById('ai-paste').value.trim();
-            if(!text) return alert("Paste the feedback text first.");
+            if(!text) return alert("Paste text first.");
             transmit({ type: "ai_log", timestamp: new Date().toLocaleString(), text: text });
             document.getElementById('ai-paste').value = ''; alert("🔱 Locked.");
         }
