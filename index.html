@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>WORKSPACE DEPLOYMENT V17</title>
+    <title>WORKSPACE DEPLOYMENT V18</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
@@ -61,6 +61,11 @@
 
                 <button id="btn-lock-daily" onclick="lockDailyProtocol()" class="w-full bg-emerald-700 hover:bg-emerald-600 text-black font-black py-3 rounded text-sm uppercase tracking-wider mt-4">Lock Daily Protocol</button>
             </div>
+
+            <div class="space-y-2 mt-4">
+                <h4 class="text-[10px] font-bold text-neutral-500 uppercase border-b border-neutral-800 pb-1">Protocol Compliance Ledger</h4>
+                <div id="daily-ledger-container" class="space-y-1.5"></div>
+            </div>
         </section>
 
         <section id="tab-exercise" class="hidden space-y-4">
@@ -81,16 +86,11 @@
         <section id="tab-nutrition" class="hidden space-y-4">
             <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
                 <div class="flex justify-between items-center">
-                    <h3 class="text-xs font-bold text-blue-400 tracking-widest uppercase">Hydration Matrix</h3>
-                    <span class="text-[9px] text-neutral-500 font-mono">TARGET: 6000 mL</span>
+                    <h3 class="text-xs font-bold text-blue-400 tracking-widest uppercase">Hydration Input</h3>
+                    <span id="water-total-banner" class="text-xs font-black text-white bg-blue-950 border border-blue-800 px-2 py-0.5 rounded font-mono">TOTAL: 0.0 L</span>
                 </div>
-                <div class="flex items-center gap-3">
-                    <div class="flex-1 bg-black h-6 rounded border border-neutral-800 relative overflow-hidden">
-                        <div id="water-bar" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%"></div>
-                        <span id="water-text" class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white drop-shadow-md">0 / 6000 mL</span>
-                    </div>
-                    <button onclick="logWater(500, this)" class="bg-blue-600 hover:bg-blue-500 text-black font-black px-4 py-1.5 rounded text-xs uppercase tracking-wider transition">+ 500</button>
-                </div>
+                <button onclick="logWater(500)" class="w-full bg-blue-600 hover:bg-blue-500 text-black font-black py-4 rounded text-sm uppercase tracking-widest transition">+ 500mL Water</button>
+                <div id="water-log-container" class="space-y-1 max-h-32 overflow-y-auto pt-1"></div>
             </div>
 
             <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
@@ -189,10 +189,10 @@
             renderDailyMetrics();
             renderWorkoutProgram();
             renderNutritionFeed();
-            renderWaterUI();
+            renderWaterLog();
         }
 
-        // ---- DAILY METRICS ----
+        // ---- HIGH-PERSISTENCE DAILY METRICS ----
         function renderDailyMetrics() {
             let todaysLogs = cloudData.daily ? cloudData.daily.filter(d => new Date(d.timestamp).toLocaleDateString('en-US') === activeDate) : [];
             let wLog = todaysLogs.find(d => d.category === 'Weight');
@@ -218,6 +218,16 @@
             });
 
             document.getElementById('btn-lock-daily').style.display = (hasLocked || wLog) ? 'none' : 'block';
+
+            // Generate localized display ledger at bottom
+            let ledger = document.getElementById('daily-ledger-container');
+            ledger.innerHTML = '';
+            if(hasLocked || wLog) {
+                if(wLog) ledger.innerHTML += `<div class="text-[10px] text-neutral-400 font-mono bg-neutral-950 p-2 rounded border border-neutral-900">🌅 Weight committed at <span class="text-emerald-400 font-bold">${wLog.value} KG</span></div>`;
+                if(completedTasks.length > 0) ledger.innerHTML += `<div class="text-[10px] text-neutral-400 font-mono bg-neutral-950 p-2 rounded border border-neutral-900">⚔️ Protocols Executed: <span class="text-emerald-400 font-bold">${completedTasks.join(', ')}</span></div>`;
+            } else {
+                ledger.innerHTML = `<p class="text-[10px] text-neutral-600 italic">No historical verification locked for this date.</p>`;
+            }
         }
 
         function toggleTask(btn) {
@@ -247,25 +257,34 @@
             renderDailyMetrics();
         }
 
-        // ---- WATER ----
-        function renderWaterUI() {
+        // ---- ACCUMULATIVE WATER TRACKER ----
+        function renderWaterLog() {
             let todaysLogs = cloudData.daily ? cloudData.daily.filter(d => new Date(d.timestamp).toLocaleDateString('en-US') === activeDate) : [];
-            let waterSum = todaysLogs.filter(d => d.category === 'Water').reduce((acc, curr) => acc + Number(curr.value), 0);
-            let waterPercent = Math.min((waterSum / 6000) * 100, 100);
-            document.getElementById('water-bar').style.width = waterPercent + '%';
-            document.getElementById('water-text').innerText = `${waterSum} / 6000 mL`;
-            document.getElementById('water-bar').className = waterSum >= 6000 ? "bg-emerald-500 h-full" : "bg-blue-600 h-full";
+            let waterEntries = todaysLogs.filter(d => d.category === 'Water');
+            
+            let container = document.getElementById('water-log-container');
+            container.innerHTML = '';
+            
+            let runningSum = 0;
+            waterEntries.forEach(entry => {
+                runningSum += Number(entry.value);
+                let timeStr = new Date(entry.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                container.innerHTML += `<div class="text-[10px] font-mono text-neutral-500 bg-black/40 px-2 py-0.5 rounded border border-neutral-900/30 flex justify-between"><span>💧 Water Intake at ${(runningSum/1000).toFixed(1)}L</span><span>${timeStr}</span></div>`;
+            });
+            
+            document.getElementById('water-total-banner').innerText = `TOTAL: ${(runningSum/1000).toFixed(1)} L`;
+            if(runningSum === 0) container.innerHTML = `<p class="text-[9px] text-neutral-600 italic pl-1">0 mL logged for this date.</p>`;
         }
 
-        function logWater(amount, btnObj) {
+        function logWater(amount) {
             let logDate = new Date(activeDate); logDate.setHours(new Date().getHours(), new Date().getMinutes());
             transmit({ type: "daily_log", timestamp: logDate.toLocaleString(), category: "Water", value: amount });
             if(!cloudData.daily) cloudData.daily = [];
             cloudData.daily.push({ timestamp: logDate.toLocaleString(), category: "Water", value: amount });
-            renderWaterUI();
+            renderWaterLog();
         }
 
-        // ---- RECALIBRATED WORKOUT GENERATOR ----
+        // ---- WORKOUT UI ----
         function renderWorkoutProgram() {
             const container = document.getElementById('workout-container'); container.innerHTML = '';
             let todaysLifts = cloudData.program ? cloudData.program.filter(p => p.date === activeDate) : [];
@@ -282,9 +301,7 @@
                         <span class="text-xs font-bold text-white uppercase w-3/4">${lift.name}</span>
                         ${lift.rest ? `<span class="text-[9px] bg-neutral-950 text-neutral-400 px-1.5 py-0.5 rounded border border-neutral-800 font-mono whitespace-nowrap">⏱️ ${lift.rest}</span>` : ''}
                     </div>
-                    <div class="text-[10px] text-emerald-400 mb-3 font-mono bg-emerald-950/30 border border-emerald-500/20 px-2 py-1.5 rounded">
-                        🎯 ${lift.target || lift.weight || 'No execution targets loaded'}
-                    </div>
+                    <div class="text-[10px] text-emerald-400 mb-3 font-mono bg-emerald-950/30 border border-emerald-500/20 px-2 py-1.5 rounded">🎯 ${lift.weight}</div>
                     <div id="ex-sets-${exIndex}" class="space-y-1">${rowsHTML}</div>
                     <div class="flex justify-between items-center mt-2">
                         <p class="text-[9px] text-emerald-500/70 font-mono">${pastText}</p>
@@ -361,10 +378,7 @@
         // ---- DATA COMMS ----
         function computeSummary() {
             document.getElementById('sum-workouts').innerText = cloudData.history ? cloudData.history.length : 0;
-            if(cloudData.nutrition && cloudData.nutrition.length > 0) { 
-                let pro = cloudData.nutrition.reduce((s, i) => s + (Number(i.pro) || 0), 0); 
-                document.getElementById('sum-protein').innerText = Math.round(pro / 7); 
-            }
+            if(cloudData.nutrition && cloudData.nutrition.length > 0) { let pro = cloudData.nutrition.reduce((s, i) => s + (Number(i.pro) || 0), 0); document.getElementById('sum-protein').innerText = Math.round(pro / 7); }
         }
 
         function copyDataForWolf() {
@@ -376,7 +390,7 @@
             let waterSum = tLogs.filter(d => d.category === 'Water').reduce((acc, curr) => acc + Number(curr.value), 0);
             let tasks = tLogs.filter(d => d.category === 'Task').map(d => d.value);
             
-            dump += `--- DAILY COMPLIANCE ---\nMorning Weight: ${wLog ? wLog.value + ' KG' : 'Not Logged'}\nWater: ${waterSum} mL\nTasks Locked: ${tasks.length > 0 ? tasks.join(', ') : 'None'}\n\n`;
+            dump += `--- DAILY COMPLIANCE ---\nMorning Weight: ${wLog ? wLog.value + ' KG' : 'Not Logged'}\nWater Total: ${(waterSum/1000).toFixed(1)} L\nTasks Locked: ${tasks.length > 0 ? tasks.join(', ') : 'None'}\n\n`;
             dump += "--- NUTRITION LOG ---\n";
             if(tMeals.length === 0) dump += "NO FOOD LOGGED.\n";
             tMeals.forEach(n => { dump += `[${new Date(n.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}] ${n.desc}\n`; });
