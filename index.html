@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>🐺 SKY APEX V16</title>
+    <title>WORKSPACE DEPLOYMENT V17</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: monospace; padding-top: env(safe-area-inset-top); }
@@ -15,7 +15,6 @@
         ::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; }
         ::-webkit-scrollbar { display: none; }
         
-        /* Task Selection Styles */
         .task-btn { background-color: #000; border: 1px solid #333; color: #a3a3a3; transition: all 0.2s; }
         .task-btn.selected { background-color: rgba(6, 78, 59, 0.4); border-color: #00ff66; color: #00ff66; font-weight: bold; }
         .task-btn.locked { background-color: #064e3b; border-color: #00ff66; color: #00ff66; font-weight: bold; opacity: 1; cursor: not-allowed; }
@@ -44,12 +43,9 @@
     <main class="flex-1 overflow-y-auto">
         
         <section id="tab-daily" class="space-y-4">
-            
             <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
                 <h3 class="text-[10px] text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-1">Morning Anchor</h3>
-                <div class="flex gap-2 items-center">
-                    <input type="number" step="0.1" id="daily-weight" placeholder="Weight (KG)" class="flex-1 p-3 rounded text-lg text-center font-bold font-mono bg-black text-white">
-                </div>
+                <input type="number" step="0.1" id="daily-weight" placeholder="Weight (KG)" class="w-full p-3 rounded text-lg text-center font-bold font-mono bg-black text-white border border-neutral-800">
             </div>
 
             <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3" id="protocol-container">
@@ -93,13 +89,12 @@
                         <div id="water-bar" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%"></div>
                         <span id="water-text" class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white drop-shadow-md">0 / 6000 mL</span>
                     </div>
-                    <button id="btn-water" onclick="logWater(500, this)" class="bg-blue-600 hover:bg-blue-500 text-black font-black px-4 py-1.5 rounded text-xs uppercase tracking-wider transition">+ 500</button>
+                    <button onclick="logWater(500, this)" class="bg-blue-600 hover:bg-blue-500 text-black font-black px-4 py-1.5 rounded text-xs uppercase tracking-wider transition">+ 500</button>
                 </div>
             </div>
 
             <div class="bg-neutral-900 p-4 rounded border border-neutral-800 space-y-3">
                 <h3 class="text-xs font-bold text-emerald-400 tracking-widest uppercase">Log Intake Block</h3>
-                <p class="text-[10px] text-neutral-500">Macros delegated to Wolf AI.</p>
                 <div class="flex gap-2">
                     <input type="time" id="n-time" class="p-2 rounded text-xs font-mono bg-black text-emerald-400 border border-neutral-800 w-1/3">
                     <input type="text" id="n-desc" placeholder="e.g. 250g Chicken, 150g Rice" class="flex-1 p-2 rounded text-sm font-mono bg-black text-white border border-neutral-800">
@@ -115,28 +110,21 @@
 
         <section id="tab-summary" class="hidden space-y-4">
             <h2 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Weekly Performance Dashboard</h2>
-            
             <div class="grid grid-cols-2 gap-3 mb-6">
                 <div class="bg-neutral-900 p-4 rounded border border-neutral-800 text-center flex flex-col justify-center">
                     <p class="text-[10px] text-neutral-500 uppercase">Workouts Logged</p>
                     <p id="sum-workouts" class="text-2xl font-black text-white">--</p>
                 </div>
                 <div class="bg-neutral-900 p-4 rounded border border-neutral-800 text-center flex flex-col justify-center">
-                    <p class="text-[10px] text-neutral-500 uppercase">Avg Daily Pro</p>
+                    <p class="text-[10px] text-neutral-500 uppercase">Avg Daily Protein</p>
                     <p id="sum-protein" class="text-2xl font-black text-emerald-400">-- g</p>
                 </div>
             </div>
 
             <div class="p-4 bg-emerald-950/20 border border-emerald-500/30 rounded text-center space-y-3">
-                <div>
-                    <p class="text-xs font-bold text-emerald-400">Wolf Protocol Comms</p>
-                    <p class="text-[10px] text-neutral-400 mb-2">Export today's matrix to chat for assessment.</p>
-                    <button onclick="copyDataForWolf()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-black font-bold py-3 rounded text-xs uppercase tracking-widest transition">Copy Daily Dump</button>
-                </div>
-
-                <div class="border-t border-emerald-900 pt-3 mt-2">
-                    <p class="text-[10px] text-neutral-400 mb-2">Paste Wolf's Tactical Assessment here to log permanently.</p>
-                    <textarea id="ai-paste" rows="4" placeholder="Paste feedback..." class="w-full p-2 rounded text-xs mb-2 resize-none font-mono bg-black text-white border border-neutral-800"></textarea>
+                <button onclick="copyDataForWolf()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-black font-bold py-3 rounded text-xs uppercase tracking-widest transition">Copy Daily Dump</button>
+                <div class="border-t border-emerald-900 pt-3">
+                    <textarea id="ai-paste" rows="4" placeholder="Paste feedback here..." class="w-full p-2 rounded text-xs mb-2 resize-none font-mono bg-black text-white border border-neutral-800"></textarea>
                     <button onclick="saveAIAssessment()" class="w-full bg-emerald-900/50 hover:bg-emerald-900 text-emerald-400 font-bold py-2 rounded text-[10px] uppercase border border-emerald-700">Lock Assessment to Database</button>
                 </div>
             </div>
@@ -149,6 +137,15 @@
 
         let cloudData = { program: [], history: [], nutrition: [], daily: [] };
         let activeDate = new Date().toLocaleDateString('en-US');
+
+        const TASK_MAP = [
+            { id: 't-croc', name: 'Crocodile Breath' },
+            { id: 't-9090', name: '90-90 Breathing' },
+            { id: 't-rib', name: 'Lateral Rib Exp' },
+            { id: 't-bug', name: 'Dead Bug (20s)' },
+            { id: 't-bird', name: 'Rev Bird Dog (5s)' },
+            { id: 't-plank', name: 'Single Plank (5s)' }
+        ];
 
         function setCurrentTime() {
             const now = new Date();
@@ -195,61 +192,49 @@
             renderWaterUI();
         }
 
-        // ---- DAILY TAB & WATER UI ----
+        // ---- DAILY METRICS ----
         function renderDailyMetrics() {
             let todaysLogs = cloudData.daily.filter(d => new Date(d.timestamp).toLocaleDateString('en-US') === activeDate);
-            
-            // Render Weight
             let wLog = todaysLogs.find(d => d.category === 'Weight');
             let wInput = document.getElementById('daily-weight');
+            
             if(wLog) {
-                wInput.value = wLog.value; wInput.disabled = true; wInput.className = "flex-1 p-3 rounded text-lg text-center font-bold font-mono bg-emerald-950/30 text-emerald-400 border border-emerald-900";
+                wInput.value = wLog.value; wInput.disabled = true; wInput.className = "w-full p-3 rounded text-lg text-center font-bold font-mono bg-emerald-950/30 text-emerald-400 border border-emerald-900";
             } else {
-                wInput.value = ''; wInput.disabled = false; wInput.className = "flex-1 p-3 rounded text-lg text-center font-bold font-mono bg-black text-white";
+                wInput.value = ''; wInput.disabled = false; wInput.className = "w-full p-3 rounded text-lg text-center font-bold font-mono bg-black text-white border border-neutral-800";
             }
 
-            // Render Task Checks
             let completedTasks = todaysLogs.filter(d => d.category === 'Task').map(d => d.value);
             let hasLocked = completedTasks.length > 0;
             
             document.querySelectorAll('.task-btn').forEach(btn => {
                 let taskName = btn.getAttribute('data-task');
                 btn.classList.remove('selected', 'locked', 'skipped');
-                
                 if (completedTasks.includes(taskName)) {
-                    btn.classList.add('locked');
-                    btn.innerText = `✔️ ${taskName}`;
+                    btn.classList.add('locked'); btn.innerText = `✔️ ${taskName}`;
                 } else if (hasLocked) {
-                    btn.classList.add('skipped'); // If something is locked, the rest are skipped
-                    btn.innerText = `❌ ${taskName}`;
-                } else {
-                    btn.innerText = taskName;
-                }
+                    btn.classList.add('skipped'); btn.innerText = `❌ ${taskName}`;
+                } else { btn.innerText = taskName; }
             });
 
-            if (hasLocked || wLog) {
-                document.getElementById('btn-lock-daily').style.display = 'none';
-            } else {
-                document.getElementById('btn-lock-daily').style.display = 'block';
-            }
+            document.getElementById('btn-lock-daily').style.display = (hasLocked || wLog) ? 'none' : 'block';
         }
 
         function toggleTask(btn) {
-            if (btn.classList.contains('locked') || btn.classList.contains('skipped')) return; // Can't toggle if already locked
+            if (btn.classList.contains('locked') || btn.classList.contains('skipped')) return;
             btn.classList.toggle('selected');
         }
 
         function lockDailyProtocol() {
             let logDate = new Date(activeDate); logDate.setHours(new Date().getHours(), new Date().getMinutes());
             let timestampStr = logDate.toLocaleString();
-            
             let weight = document.getElementById('daily-weight').value;
+            
             if (weight) {
                 transmit({ type: "daily_log", timestamp: timestampStr, category: "Weight", value: weight });
                 cloudData.daily.push({ timestamp: timestampStr, category: "Weight", value: weight });
             }
 
-            // Find all selected tasks
             document.querySelectorAll('.task-btn').forEach(btn => {
                 if(btn.classList.contains('selected')) {
                     let taskName = btn.getAttribute('data-task');
@@ -257,48 +242,33 @@
                     cloudData.daily.push({ timestamp: timestampStr, category: "Task", value: taskName });
                 }
             });
-
             renderDailyMetrics();
         }
 
-        // --- WATER ENGINE ---
+        // ---- WATER ----
         function renderWaterUI() {
             let todaysLogs = cloudData.daily.filter(d => new Date(d.timestamp).toLocaleDateString('en-US') === activeDate);
             let waterSum = todaysLogs.filter(d => d.category === 'Water').reduce((acc, curr) => acc + Number(curr.value), 0);
             let waterPercent = Math.min((waterSum / 6000) * 100, 100);
-            
             document.getElementById('water-bar').style.width = waterPercent + '%';
             document.getElementById('water-text').innerText = `${waterSum} / 6000 mL`;
-            if (waterSum >= 6000) document.getElementById('water-bar').className = "bg-emerald-500 h-full transition-all duration-500";
-            else document.getElementById('water-bar').className = "bg-blue-600 h-full transition-all duration-500";
+            document.getElementById('water-bar').className = waterSum >= 6000 ? "bg-emerald-500 h-full" : "bg-blue-600 h-full";
         }
 
         function logWater(amount, btnObj) {
             let logDate = new Date(activeDate); logDate.setHours(new Date().getHours(), new Date().getMinutes());
             transmit({ type: "daily_log", timestamp: logDate.toLocaleString(), category: "Water", value: amount });
-            
             cloudData.daily.push({ timestamp: logDate.toLocaleString(), category: "Water", value: amount });
             renderWaterUI();
-            
-            // Visual feedback
-            btnObj.innerText = "✔️ ADDED";
-            btnObj.classList.replace("bg-blue-600", "bg-emerald-500");
-            setTimeout(() => {
-                btnObj.innerText = "+ 500";
-                btnObj.classList.replace("bg-emerald-500", "bg-blue-600");
-            }, 1000);
         }
 
-        // ---- EXERCISE UI ----
+        // ---- FLEXIBLE LIFT WORKOUT UI ----
         function renderWorkoutProgram() {
             const container = document.getElementById('workout-container'); container.innerHTML = '';
             let todaysLifts = cloudData.program.filter(p => p.date === activeDate);
             if(todaysLifts.length === 0) return container.innerHTML = `<p class="text-xs text-neutral-500 text-center italic mt-4">Rest Day or Unprogrammed.</p>`;
 
             todaysLifts.forEach((lift, exIndex) => {
-                if(!lift.weight && !lift.sets) {
-                    container.innerHTML += `<div class="mt-6 mb-2 border-b border-emerald-500/30 pb-1"><span class="text-xs font-black text-emerald-500 uppercase tracking-widest">${lift.name}</span></div>`; return;
-                }
                 let pastMatch = cloudData.history.find(h => h.name.toLowerCase() === lift.name.toLowerCase());
                 let pastText = pastMatch ? `LAST: ${pastMatch.metrics}` : "NO HISTORY";
                 let rowsHTML = generateSetRow(exIndex, 0, lift.name);
@@ -306,16 +276,11 @@
                 container.innerHTML += `
                 <div class="bg-neutral-900 p-3 rounded border border-neutral-800 mb-2">
                     <div class="flex justify-between items-start mb-1">
-                        <span class="text-xs font-bold text-white uppercase">${lift.name}</span>
-                        <div class="flex gap-1">
-                            <span class="text-[10px] bg-neutral-950 text-neutral-400 px-1.5 py-0.5 rounded border border-neutral-800 font-bold">${lift.weight}</span>
-                            <span class="text-[10px] bg-emerald-950 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-800 font-bold">🎯 RPE ${lift.rpe}</span>
-                        </div>
+                        <span class="text-xs font-bold text-white uppercase w-3/4">${lift.name}</span>
+                        ${lift.sets ? `<span class="text-[9px] bg-neutral-950 text-neutral-400 px-1.5 py-0.5 rounded border border-neutral-800 font-mono whitespace-nowrap">⏱️ ${lift.sets}</span>` : ''}
                     </div>
-                    <div class="text-[10px] text-neutral-400 mb-3 flex flex-wrap gap-2 items-center">
-                        <span class="font-mono bg-black border border-neutral-800 px-1.5 py-0.5 rounded">${lift.sets} SETS</span>
-                        <span class="font-mono bg-black border border-neutral-800 px-1.5 py-0.5 rounded">${lift.reps} REPS</span>
-                        ${lift.instr ? `<span class="italic text-emerald-500/70">"${lift.instr}"</span>` : ''}
+                    <div class="text-[10px] text-emerald-400 mb-3 font-mono bg-emerald-950/30 border border-emerald-500/20 px-2 py-1.5 rounded">
+                        🎯 ${lift.weight}
                     </div>
                     <div id="ex-sets-${exIndex}" class="space-y-1">${rowsHTML}</div>
                     <div class="flex justify-between items-center mt-2">
@@ -349,8 +314,7 @@
         }
 
         async function transmit(payload) {
-            try { await fetch(SHEETS_API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } 
-            catch(e) { console.log("Recorded locally."); }
+            try { await fetch(SHEETS_API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch(e) {}
         }
 
         function lockSet(name, exIndex, setIndex) {
@@ -369,7 +333,7 @@
             alert("🔱 Logged."); ['manual-name','manual-weight','manual-reps','manual-rpe'].forEach(id => document.getElementById(id).value = '');
         }
 
-        // ---- NUTRITION UI ----
+        // ---- NUTRITION ----
         function renderNutritionFeed() {
             const container = document.getElementById('nutrition-container'); container.innerHTML = '';
             let tMeals = cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === activeDate);
@@ -390,7 +354,7 @@
             cloudData.nutrition.push({ timestamp: mealDate.toLocaleString(), desc: desc, pro: 0, carb: 0, fat: 0 }); renderNutritionFeed();
         }
 
-        // ---- DATA COMMS & AI ----
+        // ---- DATA COMMS ----
         function computeSummary() {
             document.getElementById('sum-workouts').innerText = cloudData.history.length || 0;
             if(cloudData.nutrition.length > 0) { let pro = cloudData.nutrition.reduce((s, i) => s + (Number(i.pro) || 0), 0); document.getElementById('sum-protein').innerText = Math.round(pro / 7); }
@@ -400,35 +364,27 @@
             let tMeals = cloudData.nutrition.filter(n => new Date(n.timestamp).toLocaleDateString('en-US') === activeDate);
             let tLifts = cloudData.history.filter(h => new Date(h.timestamp).toLocaleDateString('en-US') === activeDate);
             let tLogs = cloudData.daily.filter(d => new Date(d.timestamp).toLocaleDateString('en-US') === activeDate);
-            
             let dump = `WOLF PROTOCOL - END OF DAY DUMP (${activeDate})\n\n`;
-            
             let wLog = tLogs.find(d => d.category === 'Weight');
             let waterSum = tLogs.filter(d => d.category === 'Water').reduce((acc, curr) => acc + Number(curr.value), 0);
             let tasks = tLogs.filter(d => d.category === 'Task').map(d => d.value);
             
             dump += `--- DAILY COMPLIANCE ---\nMorning Weight: ${wLog ? wLog.value + ' KG' : 'Not Logged'}\nWater: ${waterSum} mL\nTasks Locked: ${tasks.length > 0 ? tasks.join(', ') : 'None'}\n\n`;
-
             dump += "--- NUTRITION LOG ---\n";
             if(tMeals.length === 0) dump += "NO FOOD LOGGED.\n";
             tMeals.forEach(n => { dump += `[${new Date(n.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}] ${n.desc}\n`; });
-            
             dump += "\n--- LIFT METRICS ---\n";
             if(tLifts.length === 0) dump += "NO LIFTS LOGGED.\n";
             tLifts.forEach(h => { dump += `- ${h.name}: ${h.metrics}\n`; });
-            
             dump += "\nAssess metrics and crunch macros.";
-            navigator.clipboard.writeText(dump);
-            alert("📋 End-of-Day data copied. Paste it into the Wolf chat.");
+            navigator.clipboard.writeText(dump); alert("📋 Data Copied.");
         }
 
         function saveAIAssessment() {
             const text = document.getElementById('ai-paste').value.trim();
-            if(!text) return alert("Paste the tactical feedback first.");
-            
+            if(!text) return alert("Paste the feedback text first.");
             transmit({ type: "ai_log", timestamp: new Date().toLocaleString(), text: text });
-            document.getElementById('ai-paste').value = '';
-            alert("🔱 Assessment permanently locked to the database.");
+            document.getElementById('ai-paste').value = ''; alert("🔱 Locked.");
         }
 
         buildDateNav(); setCurrentTime(); fetchCloudData();
